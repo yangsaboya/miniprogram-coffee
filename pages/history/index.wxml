@@ -1,0 +1,121 @@
+<view class="page">
+  <view class="weui-header">
+    <view class="weui-header__title">咖啡打卡日历</view>
+    <view class="weui-header__subtitle">
+      {{currentYear}}年{{currentMonth}}月
+    </view>
+    <view class="weui-header__meta">
+      本月共 {{monthTotal}} 杯咖啡
+    </view>
+    <view class="header-actions">
+      <button class="weui-btn weui-btn_mini" bindtap="onAddCup">今日打卡</button>
+    </view>
+  </view>
+
+  <view class="weui-panel">
+    <view class="weui-panel__hd">
+      <text>日历</text>
+      <view class="month-switch">
+        <view class="month-icon" bindtap="onPrevMonth">‹</view>
+        <view class="month-icon" bindtap="onNextMonth">›</view>
+      </view>
+    </view>
+    <view class="weui-panel__bd">
+      <view class="calendar">
+        <view class="calendar-row calendar-weekdays">
+          <block wx:for="{{weekdays}}" wx:key="*this">
+            <view class="calendar-cell calendar-weekday">{{item}}</view>
+          </block>
+        </view>
+
+        <block wx:for="{{weeks}}" wx:key="index">
+          <view class="calendar-row" wx:if="{{item.hasCurrentMonth}}">
+            <block wx:for="{{item.days}}" wx:key="dateStr">
+              <view
+                class="calendar-cell calendar-day {{item.isCurrentMonth ? '' : 'calendar-day--not-current'}} {{item.hasLog ? 'calendar-day--marked' : ''}} {{item.isToday ? 'calendar-day--today' : ''}} {{item.dateStr === selectedDate ? 'calendar-day--selected' : ''}}"
+                data-date="{{item.dateStr}}"
+                bindtap="onSelectDate"
+              >
+                <view class="calendar-day__num"><text>{{item.day}}</text></view>
+                <view class="calendar-cups">
+                  <block wx:if="{{item.cupCount}}">
+                    <block wx:for="{{item.cups}}" wx:key="index">
+                      <text class="calendar-cup">☕️</text>
+                    </block>
+                  </block>
+                </view>
+              </view>
+            </block>
+          </view>
+        </block>
+      </view>
+    </view>
+  </view>
+
+  <view class="weui-panel">
+    <view class="weui-panel__hd">
+      <view class="panel-title">
+        <text>当天打卡详情</text>
+        <text class="panel-date" wx:if="{{selectedDate}}">{{selectedDate}}</text>
+      </view>
+      <view class="panel-meta" wx:if="{{selectedLogs && selectedLogs.length}}">
+        共 {{selectedLogs.length}} 杯
+      </view>
+    </view>
+    <view class="weui-panel__bd">
+      <block wx:if="{{selectedLogs && selectedLogs.length}}">
+        <block wx:for="{{selectedLogs}}" wx:key="id" wx:for-index="idx">
+          <view class="cup-card">
+            <view class="cup-card__header">
+              <view class="cup-card__main">
+                <text class="cup-card__tag">第 {{idx + 1}} 杯</text>
+                <text class="cup-card__source">{{item.source || '自制'}}</text>
+                <text class="cup-card__shop" wx:if="{{item.source === '消费' && item.shop}}">{{item.shop}}</text>
+              </view>
+              <view class="cup-card__actions">
+                <view
+                  class="cup-card__edit"
+                  data-index="{{idx}}"
+                  bindtap="onEditCup"
+                />
+                <view
+                  class="cup-card__delete"
+                  data-index="{{idx}}"
+                  bindtap="onDeleteCup"
+                />
+              </view>
+            </view>
+            <view class="cup-card__meta" wx:if="{{item.mood || item.rating}}">
+              <text class="cup-card__mood" wx:if="{{item.mood}}">{{item.mood}}</text>
+              <text class="cup-card__rating" wx:if="{{item.rating}}">{{item.rating}}★</text>
+            </view>
+            <view class="cup-card__note" wx:if="{{item.note}}">
+              <text>{{item.note}}</text>
+            </view>
+            <view class="cup-card__photos" wx:if="{{item.photos && item.photos.length}}">
+              <block wx:for="{{item.photos}}" wx:for-item="photo" wx:key="url">
+                <view class="cup-card__photo">
+                  <image class="cup-card__photo-img" src="{{photo.url || photo}}" mode="aspectFill" />
+                  <text class="cup-card__photo-remark" wx:if="{{photo.remark}}">{{photo.remark}}</text>
+                </view>
+              </block>
+            </view>
+          </view>
+        </block>
+
+        <view class="btn-row">
+          <button class="weui-btn weui-btn_primary" bindtap="onAddCup">
+            这天再来一杯
+          </button>
+        </view>
+      </block>
+
+      <block wx:else>
+        <view class="empty">
+          <text>选择有打卡的日期查看详情～</text>
+        </view>
+      </block>
+    </view>
+  </view>
+</view>
+

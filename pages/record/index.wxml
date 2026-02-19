@@ -1,0 +1,134 @@
+<view class="page">
+  <view class="weui-header">
+    <view class="weui-header__title">今日咖啡打卡</view>
+    <view class="weui-header__subtitle">{{today}}</view>
+    <view class="weui-header__meta" wx:if="{{todayCount > 0}}">
+      今天已经喝了 {{todayCount}} 杯咖啡
+    </view>
+  </view>
+
+  <view class="weui-panel">
+    <view class="weui-panel__hd">咖啡信息</view>
+    <view class="weui-panel__bd">
+      <view class="weui-cell weui-cell_input">
+        <view class="weui-cell__hd">
+          <text class="weui-label">来源</text>
+        </view>
+        <view class="weui-cell__bd">
+          <view class="source-group">
+            <view
+              class="source-item {{log.source === '自制' ? 'source-item--active' : ''}}"
+              data-value="自制"
+              bindtap="onSourceTap"
+            >
+              <text>自制</text>
+            </view>
+            <view
+              class="source-item {{log.source === '消费' ? 'source-item--active' : ''}}"
+              data-value="消费"
+              bindtap="onSourceTap"
+            >
+              <text>消费</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view class="weui-cell weui-cell_input weui-cell--shop" wx:if="{{log.source === '消费'}}">
+        <view class="weui-cell__hd">
+          <text class="weui-label">店铺</text>
+        </view>
+        <view class="weui-cell__bd">
+          <input
+            class="weui-input shop-input"
+            placeholder="输入今天喝咖啡的店铺"
+            value="{{log.shop}}"
+            bindinput="onShopInput"
+          />
+          <view class="shop-location-btn" bindtap="onChooseLocation">
+            <text>选点</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="weui-cell weui-cell_input">
+        <view class="weui-cell__hd">
+          <text class="weui-label">心情</text>
+        </view>
+        <view class="weui-cell__bd">
+          <view class="mood-list">
+            <block wx:for="{{moodOptions}}" wx:key="*this">
+              <view
+                class="mood-item {{log.mood === item ? 'mood-item--active' : ''}}"
+                data-value="{{item}}"
+                bindtap="onMoodTap"
+              >
+                <text>{{item}}</text>
+              </view>
+            </block>
+          </view>
+        </view>
+      </view>
+
+      <view class="weui-cell weui-cell_input weui-cell--rating">
+        <view class="weui-cell__hd">
+          <text class="weui-label">评分</text>
+        </view>
+        <view class="weui-cell__bd">
+          <view class="rating-stars">
+            <block wx:for="{{stars}}" wx:key="*this">
+              <text
+                class="rating-star {{log.rating >= item ? 'rating-star--active' : ''}}"
+                data-score="{{item}}"
+                bindtap="onRatingTap"
+              >
+                ★
+              </text>
+            </block>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="weui-panel">
+    <view class="weui-panel__hd">照片</view>
+    <view class="weui-panel__bd">
+      <view class="photo-list">
+        <block wx:if="{{log.photos && log.photos.length}}">
+          <block wx:for="{{log.photos}}" wx:key="url" wx:for-item="photo" wx:for-index="photoIdx">
+            <view class="photo-item">
+              <image class="photo-item__img" src="{{photo.url || photo}}" mode="aspectFill" />
+              <view class="photo-item__remark-wrap">
+                <input
+                  class="photo-item__remark-input"
+                  placeholder="添加备注"
+                  placeholder-class="photo-remark-placeholder"
+                  value="{{photo.remark}}"
+                  data-index="{{photoIdx}}"
+                  bindinput="onPhotoRemarkInput"
+                />
+              </view>
+              <view class="photo-item__del" data-index="{{photoIdx}}" catchtap="onRemovePhoto">×</view>
+            </view>
+          </block>
+        </block>
+        <view class="photo-add" bindtap="onAddPhoto">
+          <view class="photo-add__inner">
+            <text class="photo-add__icon">＋</text>
+            <text class="photo-add__text">添加照片</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="weui-footer">
+    <view class="footer-btns">
+      <button class="weui-btn weui-btn_primary" bindtap="onPunch" disabled="{{punching}}" loading="{{punching}}">
+        今日打卡
+      </button>
+    </view>
+  </view>
+  <bottom-bar />
+</view>

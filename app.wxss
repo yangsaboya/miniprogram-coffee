@@ -1,0 +1,57 @@
+/**app.wxss**/
+
+/* 全局咖啡主题色 */
+:root,
+page {
+  --coffee-primary: #6f4e37;
+  --coffee-primary-light: #8b5a3c;
+  --coffee-accent: #c49a6c;
+  --coffee-bg: #f7f3ee;
+  --coffee-card: #ffffff;
+  --coffee-text-main: #2f2620;
+  --coffee-text-sub: #8b7b70;
+}
+
+page {
+  background: radial-gradient(circle at top left, #fdf6ec 0, #f7f3ee 40%, #f3eee8 100%);
+}
+
+/* 通用容器（旧 demo 可能会用到） */
+.container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 200rpx 0;
+  box-sizing: border-box;
+}
+
+/* 通用咖啡标题样式，可复用 */
+.coffee-title {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: var(--coffee-text-main);
+}
+
+.coffee-subtitle {
+  margin-top: 6rpx;
+  font-size: 24rpx;
+  color: var(--coffee-text-sub);
+}
+
+/* 通用按钮覆写 WeUI 绿色，统一为咖啡棕 */
+.weui-btn_primary {
+  background-color: var(--coffee-primary);
+  color: #ffffff;
+}
+
+.weui-btn_primary:active {
+  background-color: var(--coffee-primary-light);
+}
+
+.weui-btn_default {
+  background-color: #ffffff;
+  color: var(--coffee-primary);
+  border: 2rpx solid var(--coffee-primary);
+}

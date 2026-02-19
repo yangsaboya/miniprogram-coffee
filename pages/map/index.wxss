@@ -1,0 +1,152 @@
+.page {
+  min-height: 100vh;
+  background: radial-gradient(circle at top, #fdf6ec 0, #f7f3ee 45%, #f3eee8 100%);
+  box-sizing: border-box;
+  padding-bottom: 40rpx;
+}
+
+.map-header {
+  padding: 32rpx 32rpx 16rpx;
+}
+
+.map-title {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #2f2620;
+}
+
+.map-subtitle {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #8b7b70;
+}
+
+.map-wrapper {
+  margin: 0 24rpx 24rpx;
+  border-radius: 24rpx;
+  overflow: hidden;
+  box-shadow: 0 10rpx 26rpx rgba(55, 40, 30, 0.08);
+  background-color: #fdfaf6;
+  position: relative;
+}
+
+.map {
+  width: 100%;
+  height: 70vh;
+}
+
+.map-empty {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 24rpx;
+  background: linear-gradient(to top, rgba(253, 250, 246, 0.96), rgba(253, 250, 246, 0.6), transparent);
+  text-align: center;
+  font-size: 24rpx;
+  color: #8b7b70;
+}
+
+.detail-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 100;
+}
+
+.detail-panel {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 70vh;
+  background: #fdfaf6;
+  border-radius: 24rpx 24rpx 0 0;
+  box-shadow: 0 -8rpx 32rpx rgba(0, 0, 0, 0.1);
+  z-index: 101;
+  overflow: hidden;
+}
+
+.detail-panel__hd {
+  padding: 24rpx 32rpx 16rpx;
+  border-bottom: 1rpx solid #efe1d4;
+  position: relative;
+}
+
+.detail-panel__title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #2f2620;
+}
+
+.detail-panel__date {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 24rpx;
+  color: #8b7b70;
+}
+
+.detail-panel__close {
+  position: absolute;
+  right: 24rpx;
+  top: 24rpx;
+  width: 56rpx;
+  height: 56rpx;
+  text-align: center;
+  line-height: 56rpx;
+  font-size: 36rpx;
+  color: #8b7b70;
+}
+
+.detail-panel__bd {
+  height: 55vh;
+}
+
+.detail-panel__bd-inner {
+  padding: 20rpx 32rpx 32rpx;
+}
+
+.detail-row {
+  margin-bottom: 16rpx;
+}
+
+.detail-label {
+  display: block;
+  font-size: 24rpx;
+  color: #8b7b70;
+  margin-bottom: 4rpx;
+}
+
+.detail-value {
+  font-size: 28rpx;
+  color: #2f2620;
+}
+
+.detail-photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  margin-top: 16rpx;
+}
+
+.detail-photo-wrap {
+  width: 23%;
+  padding-bottom: 23%;
+  height: 0;
+  position: relative;
+  border-radius: 12rpx;
+  overflow: hidden;
+  background: #e6d7c8;
+}
+
+.detail-photo {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+

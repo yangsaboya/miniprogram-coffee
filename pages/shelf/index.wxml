@@ -1,0 +1,41 @@
+<view class="page">
+  <view class="shelf-header">
+    <view class="shelf-title">咖啡架</view>
+    <view class="shelf-desc">来自打卡的咖啡瞬间，也可从相册添加</view>
+  </view>
+
+  <view class="shelf-wrap" wx:if="{{rows && rows.length}}">
+    <view class="shelf-row" wx:for="{{rows}}" wx:key="index">
+      <view class="shelf-board"></view>
+      <view class="shelf-slots">
+        <view
+          class="shelf-slot"
+          wx:for="{{item}}"
+          wx:for-item="photo"
+          wx:key="id"
+          bindtap="onPreview"
+          data-url="{{photo.url}}"
+        >
+          <image class="shelf-photo" src="{{photo.url}}" mode="aspectFill" />
+          <text class="shelf-date" wx:if="{{photo.date}}">{{photo.date}}</text>
+          <text class="shelf-remark" wx:if="{{photo.remark}}">{{photo.remark}}</text>
+          <view
+            class="shelf-slot__del"
+            wx:if="{{photo.source === 'shelf'}}"
+            catchtap="removeFromShelf"
+            data-id="{{photo.id}}"
+          >×</view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="shelf-empty" wx:else>
+    <text class="shelf-empty__text">架上还没有照片</text>
+    <text class="shelf-empty__hint">打卡时上传的照片会出现在这里，也可从相册添加</text>
+  </view>
+
+  <view class="shelf-actions">
+    <button class="weui-btn weui-btn_primary" bindtap="addFromAlbum">从相册添加到咖啡架</button>
+  </view>
+</view>

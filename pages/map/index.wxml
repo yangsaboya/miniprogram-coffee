@@ -1,0 +1,62 @@
+<view class="page">
+  <view class="map-header">
+    <view class="map-title">咖啡消费足迹</view>
+    <view class="map-subtitle">基于你打卡时选的店铺位置</view>
+  </view>
+
+  <view class="map-wrapper">
+    <map
+      class="map"
+      latitude="{{latitude}}"
+      longitude="{{longitude}}"
+      scale="{{scale}}"
+      markers="{{markers}}"
+      bindmarkertap="onMarkerTap"
+      show-location
+    />
+    <view class="map-empty" wx:if="{{!markers.length}}">
+      <text>还没有带位置的咖啡打卡，先去选点打卡一杯吧～</text>
+    </view>
+  </view>
+
+  <view class="detail-mask" wx:if="{{showDetail}}" bindtap="closeDetail" />
+  <view class="detail-panel" wx:if="{{showDetail}}">
+    <view class="detail-panel__hd">
+      <text class="detail-panel__title">最新一次打卡</text>
+      <text class="detail-panel__date">{{detailDate}}</text>
+      <view class="detail-panel__close" bindtap="closeDetail">×</view>
+    </view>
+    <scroll-view class="detail-panel__bd" scroll-y="{{true}}" catchtap="">
+      <view class="detail-panel__bd-inner">
+        <view class="detail-row" wx:if="{{detailEntry.shop}}">
+          <text class="detail-label">店铺</text>
+          <text class="detail-value">{{detailEntry.shop}}</text>
+        </view>
+        <view class="detail-row">
+          <text class="detail-label">来源</text>
+          <text class="detail-value">{{detailEntry.source || '自制'}}</text>
+        </view>
+        <view class="detail-row" wx:if="{{detailEntry.mood}}">
+          <text class="detail-label">心情</text>
+          <text class="detail-value">{{detailEntry.mood}}</text>
+        </view>
+        <view class="detail-row" wx:if="{{detailEntry.rating}}">
+          <text class="detail-label">评分</text>
+          <text class="detail-value">{{detailEntry.rating}}★</text>
+        </view>
+        <view class="detail-row" wx:if="{{detailEntry.note}}">
+          <text class="detail-label">备注</text>
+          <text class="detail-value">{{detailEntry.note}}</text>
+        </view>
+        <view class="detail-photos" wx:if="{{detailEntry.photos && detailEntry.photos.length}}">
+          <block wx:for="{{detailEntry.photos}}" wx:for-item="photo" wx:key="url">
+            <view class="detail-photo-wrap">
+              <image class="detail-photo" src="{{photo.url || photo}}" mode="aspectFill" />
+            </view>
+          </block>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+</view>
+

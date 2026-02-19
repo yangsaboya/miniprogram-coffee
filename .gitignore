@@ -1,0 +1,19 @@
+# 微信小程序
+project.private.config.json
+
+# 云函数依赖（安装后生成）
+cloudfunctions/**/node_modules/
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+*.log
+.idea/
+.vscode/
+*.suo
+*.user
+
+# 本地环境 / 密钥（如有）
+.env
+.env.local
+*.pem
