@@ -49,13 +49,19 @@ Page({
   loadLogs(year, month) {
     const y = year ?? this.data.currentYear;
     const m = month ?? this.data.currentMonth;
-    const raw = cloudStore.getJsonLocal('coffeeLogs') || {};
-    const logs = this.rawToLogs(raw);
-    this.setData({ logs });
-    this.buildCalendar(y, m, logs);
-    const todayStr = this.formatDate(new Date());
-    this.selectDate(this.data.selectedDate || todayStr);
-
+    try {
+      const raw = cloudStore.getJsonLocal('coffeeLogs') || {};
+      const logs = this.rawToLogs(raw);
+      this.setData({ logs });
+      this.buildCalendar(y, m, logs);
+      const todayStr = this.formatDate(new Date());
+      this.selectDate(this.data.selectedDate || todayStr);
+    } catch (e) {
+      console.error('loadLogs local fail', e);
+      this.setData({ logs: {} });
+      this.buildCalendar(y, m, {});
+      this.selectDate(this.formatDate(new Date()));
+    }
     cloudStore.getJson('coffeeLogs').then((cloudRaw) => {
       if (cloudRaw && typeof cloudRaw === 'object') {
         wx.setStorageSync('coffeeLogs', cloudRaw);

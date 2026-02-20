@@ -42,41 +42,50 @@ Page({
   },
 
   loadLog(date, editIndex) {
-    let allLogs = cloudStore.getJsonLocal('coffeeLogs') || {};
-    const value = allLogs[date];
-    let logsOfDay = [];
-    if (Array.isArray(value)) {
-      logsOfDay = value;
-    } else if (value) {
-      logsOfDay = [value];
-    }
-    let log = {
-      date,
-      source: '自制',
-      shop: '',
-      mood: '',
-      rating: 0,
-      photos: []
-    };
-    if (editIndex >= 0 && editIndex < logsOfDay.length) {
-      const entry = logsOfDay[editIndex];
-      log = {
+    try {
+      const allLogs = cloudStore.getJsonLocal('coffeeLogs') || {};
+      const value = allLogs[date];
+      let logsOfDay = [];
+      if (Array.isArray(value)) {
+        logsOfDay = value;
+      } else if (value) {
+        logsOfDay = [value];
+      }
+      let log = {
         date,
-        source: entry.source || '自制',
-        shop: entry.shop || '',
-        mood: entry.mood || '',
-        rating: entry.rating || 0,
-        photos: Array.isArray(entry.photos) ? entry.photos : [],
-        id: entry.id,
-        createdAt: entry.createdAt
+        source: '自制',
+        shop: '',
+        mood: '',
+        rating: 0,
+        photos: []
       };
-      if (entry.location) log.location = entry.location;
+      if (editIndex >= 0 && editIndex < logsOfDay.length) {
+        const entry = logsOfDay[editIndex];
+        log = {
+          date,
+          source: entry.source || '自制',
+          shop: entry.shop || '',
+          mood: entry.mood || '',
+          rating: entry.rating || 0,
+          photos: Array.isArray(entry.photos) ? entry.photos : [],
+          id: entry.id,
+          createdAt: entry.createdAt
+        };
+        if (entry.location) log.location = entry.location;
+      }
+      this.setData({
+        today: date,
+        log,
+        todayCount: logsOfDay.length
+      });
+    } catch (e) {
+      console.error('loadLog local fail', e);
+      this.setData({
+        today: date,
+        log: { date, source: '自制', shop: '', mood: '', rating: 0, photos: [] },
+        todayCount: 0
+      });
     }
-    this.setData({
-      today: date,
-      log,
-      todayCount: logsOfDay.length
-    });
     cloudStore.getJson('coffeeLogs').then((cloudRaw) => {
       if (cloudRaw && typeof cloudRaw === 'object') {
         wx.setStorageSync('coffeeLogs', cloudRaw);
@@ -186,14 +195,13 @@ Page({
       success(res) {
         const paths = res.tempFilePaths || [];
         that.appendPhotos(paths);
-        paths.forEach((path) => {
+        // 只保存一张到相册，避免与系统自动保存重复
+        if (paths.length > 0) {
           wx.saveImageToPhotosAlbum({
-            filePath: path,
-            fail() {
-              // 用户拒绝授权或失败时，不打断整体流程
-            }
+            filePath: paths[0],
+            fail() {}
           });
-        });
+        }
       }
     });
   },
@@ -279,16 +287,8 @@ Page({
     }
     allLogs[date] = logsOfDay;
     wx.setStorageSync('coffeeLogs', allLogs);
-    try {
-      await cloudStore.setJson('coffeeLogs', allLogs);
-    } catch (e) {
-      console.error('cloud setJson fail', e);
-      wx.showToast({ title: '已保存到本地，云端同步失败', icon: 'none' });
-      this.setData({ punching: false });
-      return;
-    }
 
-    // 清空输入，方便继续记录下一杯
+    // 先存本地，立刻给成功反馈，弱网也能打卡；云端后台同步
     this.setData({
       log: {
         date,
@@ -319,6 +319,11 @@ Page({
         });
       }
     }, 800);
+
+    cloudStore.setJson('coffeeLogs', allLogs).catch((e) => {
+      console.error('cloud setJson fail', e);
+      wx.showToast({ title: '已保存在本地，云端同步失败', icon: 'none' });
+    });
   },
 
 });
