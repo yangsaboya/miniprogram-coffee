@@ -12,14 +12,19 @@ function getOpenIdSync() {
   }
 }
 
-/** 确保已拿到 openid（没有则请求云函数），再读写云库 */
+const OPENID_TIMEOUT_MS = 10000;
+
+/** 确保已拿到 openid（没有则请求云函数），超时或失败则返回 null，不阻塞首屏 */
 function ensureOpenId() {
   const id = getOpenIdSync();
   if (id) return Promise.resolve(id);
   if (!wx.cloud) return Promise.resolve(null);
-  return wx.cloud
+  const timeoutPromise = new Promise(function (resolve) {
+    setTimeout(function () { resolve(null); }, OPENID_TIMEOUT_MS);
+  });
+  const callPromise = wx.cloud
     .callFunction({ name: 'getOpenId' })
-    .then((res) => {
+    .then(function (res) {
       const openid = res.result && res.result.openid;
       if (openid) {
         try {
@@ -28,7 +33,8 @@ function ensureOpenId() {
       }
       return openid || null;
     })
-    .catch(() => null);
+    .catch(function () { return null; });
+  return Promise.race([callPromise, timeoutPromise]);
 }
 
 function getCollection() {

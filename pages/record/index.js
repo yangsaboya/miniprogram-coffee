@@ -195,13 +195,7 @@ Page({
       success(res) {
         const paths = res.tempFilePaths || [];
         that.appendPhotos(paths);
-        // 只保存一张到相册，避免与系统自动保存重复
-        if (paths.length > 0) {
-          wx.saveImageToPhotosAlbum({
-            filePath: paths[0],
-            fail() {}
-          });
-        }
+        // 不再调用保存相册：拍照时系统/微信已自动写入相册，再调会重复一张
       }
     });
   },

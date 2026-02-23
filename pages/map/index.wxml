@@ -1,7 +1,7 @@
 <view class="page">
   <view class="map-header">
     <view class="map-title">咖啡消费足迹</view>
-    <view class="map-subtitle">基于你打卡时选的店铺位置</view>
+    <view class="map-subtitle">基于你打卡时选的店铺位置 · 共去过 {{totalShopCount}} 家咖啡店</view>
   </view>
 
   <view class="map-wrapper">

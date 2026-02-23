@@ -5,7 +5,7 @@
       {{currentYear}}年{{currentMonth}}月
     </view>
     <view class="weui-header__meta">
-      本月共 {{monthTotal}} 杯咖啡
+      本月共 {{monthTotal}} 杯咖啡，去过 {{monthShopCount}} 家咖啡店
     </view>
     <view class="header-actions">
       <button class="weui-btn weui-btn_mini" bindtap="onAddCup">今日打卡</button>

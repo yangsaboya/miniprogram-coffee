@@ -9,7 +9,8 @@ Page({
     logs: {},
     selectedDate: '',
     selectedLogs: [],
-    monthTotal: 0
+    monthTotal: 0,
+    monthShopCount: 0
   },
 
   onLoad() {
@@ -81,100 +82,107 @@ Page({
   },
 
   buildCalendar(year, month, logsOverride) {
-    const logs = logsOverride ?? this.data.logs ?? {};
-    const firstDay = new Date(year, month - 1, 1);
-    const firstWeekDay = firstDay.getDay(); // 0-6
-    const daysInMonth = new Date(year, month, 0).getDate();
-
-    // 上个月和下个月信息，用于补全日历
-    const prevMonth = month === 1 ? 12 : month - 1;
-    const prevYear = month === 1 ? year - 1 : year;
-    const daysInPrevMonth = new Date(prevYear, prevMonth, 0).getDate();
-    const nextMonth = month === 12 ? 1 : month + 1;
-    const nextYear = month === 12 ? year + 1 : year;
-
-    const todayStr = this.formatDate(new Date());
-
-    const cells = [];
-
-    // 前导空白天：显示上个月日期，以保持对齐
-    for (let i = 0; i < firstWeekDay; i++) {
-      const day = daysInPrevMonth - firstWeekDay + 1 + i;
-      const dateStr = `${prevYear}-${String(prevMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const list = logs[dateStr];
-      const cupCount = Array.isArray(list) ? list.length : 0;
-      const cups = cupCount ? new Array(Math.min(cupCount, 3)).fill(1) : [];
-      cells.push({
-        day,
-        dateStr,
-        isCurrentMonth: false,
-        hasLog: cupCount > 0,
-        cupCount,
-        cups,
-        isToday: dateStr === todayStr
-      });
-    }
-
-    // 当前月
-    for (let d = 1; d <= daysInMonth; d++) {
-      const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      const list = logs[dateStr];
-      const cupCount = Array.isArray(list) ? list.length : 0;
-      const cups = cupCount ? new Array(Math.min(cupCount, 3)).fill(1) : [];
-      cells.push({
-        day: d,
-        dateStr,
-        isCurrentMonth: true,
-        hasLog: cupCount > 0,
-        cupCount,
-        cups,
-        isToday: dateStr === todayStr
-      });
-    }
-
-    // 补足 6 行 7 列，用下个月日期
-    const totalCellsTarget = 42;
-    let extraDay = 1;
-    while (cells.length < totalCellsTarget) {
-      const dateStr = `${nextYear}-${String(nextMonth).padStart(2, '0')}-${String(extraDay).padStart(2, '0')}`;
-      const list = logs[dateStr];
-      const cupCount = Array.isArray(list) ? list.length : 0;
-      const cups = cupCount ? new Array(Math.min(cupCount, 3)).fill(1) : [];
-      cells.push({
-        day: extraDay,
-        dateStr,
-        isCurrentMonth: false,
-        hasLog: cupCount > 0,
-        cupCount,
-        cups,
-        isToday: dateStr === todayStr
-      });
-      extraDay += 1;
-    }
-
-    const weeks = [];
-    for (let i = 0; i < totalCellsTarget; i += 7) {
-      const row = cells.slice(i, i + 7);
-      const hasCurrentMonth = row.some((cell) => cell.isCurrentMonth);
-      weeks.push({
-        days: row,
-        hasCurrentMonth
-      });
-    }
-
-    // 统计本月总杯数
+    let weeks = [];
     let monthTotal = 0;
-    for (let d = 1; d <= daysInMonth; d++) {
-      const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      const list = logs[dateStr];
-      if (Array.isArray(list)) {
-        monthTotal += list.length;
-      }
-    }
+    let monthShopCount = 0;
+    try {
+      const logs = logsOverride != null ? logsOverride : (this.data.logs || {});
+      const firstDay = new Date(year, month - 1, 1);
+      const firstWeekDay = firstDay.getDay();
+      const daysInMonth = new Date(year, month, 0).getDate();
 
+      const prevMonth = month === 1 ? 12 : month - 1;
+      const prevYear = month === 1 ? year - 1 : year;
+      const daysInPrevMonth = new Date(prevYear, prevMonth, 0).getDate();
+      const nextMonth = month === 12 ? 1 : month + 1;
+      const nextYear = month === 12 ? year + 1 : year;
+
+      const todayStr = this.formatDate(new Date());
+      const cells = [];
+
+      for (let i = 0; i < firstWeekDay; i++) {
+        const day = daysInPrevMonth - firstWeekDay + 1 + i;
+        const dateStr = `${prevYear}-${String(prevMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const list = logs[dateStr];
+        const cupCount = Array.isArray(list) ? list.length : 0;
+        const cups = cupCount ? new Array(Math.min(cupCount, 3)).fill(1) : [];
+        cells.push({
+          day,
+          dateStr,
+          isCurrentMonth: false,
+          hasLog: cupCount > 0,
+          cupCount,
+          cups,
+          isToday: dateStr === todayStr
+        });
+      }
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const list = logs[dateStr];
+        const cupCount = Array.isArray(list) ? list.length : 0;
+        const cups = cupCount ? new Array(Math.min(cupCount, 3)).fill(1) : [];
+        cells.push({
+          day: d,
+          dateStr,
+          isCurrentMonth: true,
+          hasLog: cupCount > 0,
+          cupCount,
+          cups,
+          isToday: dateStr === todayStr
+        });
+      }
+
+      const totalCellsTarget = 42;
+      let extraDay = 1;
+      while (cells.length < totalCellsTarget) {
+        const dateStr = `${nextYear}-${String(nextMonth).padStart(2, '0')}-${String(extraDay).padStart(2, '0')}`;
+        const list = logs[dateStr];
+        const cupCount = Array.isArray(list) ? list.length : 0;
+        const cups = cupCount ? new Array(Math.min(cupCount, 3)).fill(1) : [];
+        cells.push({
+          day: extraDay,
+          dateStr,
+          isCurrentMonth: false,
+          hasLog: cupCount > 0,
+          cupCount,
+          cups,
+          isToday: dateStr === todayStr
+        });
+        extraDay += 1;
+      }
+
+      for (let i = 0; i < totalCellsTarget; i += 7) {
+        const row = cells.slice(i, i + 7);
+        weeks.push({
+          days: row,
+          hasCurrentMonth: row.some(function (cell) { return cell.isCurrentMonth; })
+        });
+      }
+
+      const monthShops = {};
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const list = logs[dateStr];
+        if (Array.isArray(list)) {
+          monthTotal += list.length;
+          for (let i = 0; i < list.length; i++) {
+            const entry = list[i];
+            if (entry && typeof entry === 'object' && entry.source === '消费' && entry.shop) {
+              const s = String(entry.shop).trim();
+              if (s) monthShops[s] = true;
+            }
+          }
+        }
+      }
+      monthShopCount = Object.keys(monthShops).length;
+    } catch (e) {
+      console.error('buildCalendar fail', e);
+    }
     this.setData({
-      weeks,
-      monthTotal
+      weeks: weeks,
+      monthTotal: monthTotal,
+      monthShopCount: monthShopCount
     });
   },
 
