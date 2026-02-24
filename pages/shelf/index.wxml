@@ -2,6 +2,9 @@
   <view class="shelf-header">
     <view class="shelf-title">咖啡架</view>
     <view class="shelf-desc">来自打卡的咖啡瞬间，也可从相册添加</view>
+    <view class="shelf-summary" wx:if="{{coffeeCount > 0}}">
+      你一共收集了 {{coffeeCount}} 个咖啡瞬间
+    </view>
   </view>
 
   <view class="shelf-wrap" wx:if="{{rows && rows.length}}">
@@ -9,22 +12,18 @@
       <view class="shelf-board"></view>
       <view class="shelf-slots">
         <view
-          class="shelf-slot"
+          class="shelf-slot {{photo.cutoutUrl ? 'shelf-slot--cutout' : ''}}"
           wx:for="{{item}}"
           wx:for-item="photo"
           wx:key="id"
           bindtap="onPreview"
+          bindlongpress="onSlotLongPress"
+          data-id="{{photo.id}}"
           data-url="{{photo.url}}"
+          data-source="{{photo.source}}"
+          data-cutout-url="{{photo.cutoutUrl}}"
         >
-          <image class="shelf-photo" src="{{photo.url}}" mode="aspectFill" />
-          <text class="shelf-date" wx:if="{{photo.date}}">{{photo.date}}</text>
-          <text class="shelf-remark" wx:if="{{photo.remark}}">{{photo.remark}}</text>
-          <view
-            class="shelf-slot__del"
-            wx:if="{{photo.source === 'shelf'}}"
-            catchtap="removeFromShelf"
-            data-id="{{photo.id}}"
-          >×</view>
+          <image class="shelf-photo" src="{{photo.cutoutUrl || photo.url}}" mode="aspectFill" />
         </view>
       </view>
     </view>
