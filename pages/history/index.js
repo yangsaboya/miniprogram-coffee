@@ -1,4 +1,5 @@
 const cloudStore = require('../../utils/cloudStore.js');
+const cloudStorage = require('../../utils/cloudStorage.js');
 
 Page({
   data: {
@@ -48,6 +49,8 @@ Page({
   },
 
   loadLogs(year, month) {
+    this._loadReqId = (this._loadReqId || 0) + 1;
+    const reqId = this._loadReqId;
     const y = year ?? this.data.currentYear;
     const m = month ?? this.data.currentMonth;
     try {
@@ -64,6 +67,7 @@ Page({
       this.selectDate(this.formatDate(new Date()));
     }
     cloudStore.getJson('coffeeLogs').then((cloudRaw) => {
+      if (reqId !== this._loadReqId) return;
       if (cloudRaw && typeof cloudRaw === 'object') {
         wx.setStorageSync('coffeeLogs', cloudRaw);
         const cloudLogs = this.rawToLogs(cloudRaw);
@@ -268,6 +272,17 @@ Page({
 
     if (index < 0 || index >= list.length) return;
 
+    // 同步删除该条打卡在云存储里的照片与抠图，避免垃圾堆积
+    const entry = list[index];
+    const fileIDs = [];
+    if (entry && Array.isArray(entry.photos)) {
+      entry.photos.forEach((p) => {
+        if (p && p.url && String(p.url).startsWith('cloud://')) fileIDs.push(p.url);
+        if (p && p.cutoutUrl && String(p.cutoutUrl).startsWith('cloud://')) fileIDs.push(p.cutoutUrl);
+      });
+    }
+    if (fileIDs.length) cloudStorage.deleteCloudFiles(fileIDs).catch(() => {});
+
     list.splice(index, 1);
     if (list.length === 0) {
       delete raw[date];
@@ -297,4 +312,3 @@ Page({
   },
 
 });
-

@@ -6,14 +6,24 @@ page {
   --coffee-primary: #6f4e37;
   --coffee-primary-light: #8b5a3c;
   --coffee-accent: #c49a6c;
+  --coffee-accent-soft: #e8d7c2;
   --coffee-bg: #f7f3ee;
   --coffee-card: #ffffff;
   --coffee-text-main: #2f2620;
   --coffee-text-sub: #8b7b70;
+  --coffee-radius: 16rpx;
+  --coffee-radius-lg: 24rpx;
+  --coffee-shadow-sm: 0 6rpx 14rpx rgba(55, 40, 30, 0.06);
+  --coffee-shadow-md: 0 10rpx 26rpx rgba(55, 40, 30, 0.08);
+  --coffee-press-scale: 0.98;
+  --coffee-transition-fast: 160ms ease;
+  --coffee-transition-mid: 220ms ease;
 }
 
 page {
   background: radial-gradient(circle at top left, #fdf6ec 0, #f7f3ee 40%, #f3eee8 100%);
+  color: var(--coffee-text-main);
+  line-height: 1.4;
 }
 
 /* 通用容器（旧 demo 可能会用到） */
@@ -54,4 +64,55 @@ page {
   background-color: #ffffff;
   color: var(--coffee-primary);
   border: 2rpx solid var(--coffee-primary);
+}
+
+/* ---- UX统一层：交互反馈 / 视觉节奏 ---- */
+
+button,
+.weui-btn,
+.month-icon,
+.map-locate-btn,
+.chip,
+.thumb,
+.shelf-slot,
+.source-item,
+.mood-item,
+.photo-add,
+.shop-location-btn,
+.tab-bar__item {
+  transition: transform var(--coffee-transition-fast), opacity var(--coffee-transition-fast), box-shadow var(--coffee-transition-mid), background-color var(--coffee-transition-mid), border-color var(--coffee-transition-mid);
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:active,
+.weui-btn:active,
+.month-icon:active,
+.map-locate-btn:active,
+.chip:active,
+.thumb:active,
+.shelf-slot:active,
+.source-item:active,
+.mood-item:active,
+.photo-add:active,
+.shop-location-btn:active,
+.tab-bar__item:active {
+  transform: scale(var(--coffee-press-scale));
+}
+
+/* 主面板统一层次（跨页面对齐） */
+.weui-panel,
+.map-wrapper,
+.story-card,
+.panel,
+.empty {
+  border-radius: var(--coffee-radius);
+  box-shadow: var(--coffee-shadow-md);
+}
+
+/* 标题容器统一层次 */
+.weui-header,
+.hero,
+.map-header,
+.shelf-header {
+  border-radius: var(--coffee-radius);
 }

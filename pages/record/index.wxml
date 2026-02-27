@@ -43,6 +43,7 @@
             class="weui-input shop-input"
             placeholder="输入今天喝咖啡的店铺"
             value="{{log.shop}}"
+            maxlength="40"
             bindinput="onShopInput"
           />
           <view class="shop-location-btn" bindtap="onChooseLocation">
@@ -67,6 +68,22 @@
               </view>
             </block>
           </view>
+        </view>
+      </view>
+
+      <view class="weui-cell weui-cell_input">
+        <view class="weui-cell__hd">
+          <text class="weui-label">心情记录</text>
+        </view>
+        <view class="weui-cell__bd">
+          <textarea
+            class="note-textarea"
+            placeholder="写几句今天的心情..."
+            value="{{log.note}}"
+            maxlength="300"
+            bindinput="onNoteInput"
+            auto-height
+          />
         </view>
       </view>
 
@@ -105,6 +122,7 @@
                   placeholder="添加备注"
                   placeholder-class="photo-remark-placeholder"
                   value="{{photo.remark}}"
+                  maxlength="30"
                   data-index="{{photoIdx}}"
                   bindinput="onPhotoRemarkInput"
                 />

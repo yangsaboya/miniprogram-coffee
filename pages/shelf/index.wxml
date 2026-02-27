@@ -1,10 +1,10 @@
 <view class="page">
   <view class="shelf-header">
     <view class="shelf-title">咖啡架</view>
-    <view class="shelf-desc">来自打卡的咖啡瞬间，也可从相册添加</view>
     <view class="shelf-summary" wx:if="{{coffeeCount > 0}}">
       你一共收集了 {{coffeeCount}} 个咖啡瞬间
     </view>
+    <view class="shelf-desc">来自打卡的咖啡瞬间，也可从相册添加</view>
   </view>
 
   <view class="shelf-wrap" wx:if="{{rows && rows.length}}">
@@ -23,7 +23,7 @@
           data-source="{{photo.source}}"
           data-cutout-url="{{photo.cutoutUrl}}"
         >
-          <image class="shelf-photo" src="{{photo.cutoutUrl || photo.url}}" mode="aspectFill" />
+          <cached-image custom-class="shelf-photo" url="{{photo.cutoutUrl || photo.url}}" mode="aspectFill" />
         </view>
       </view>
     </view>

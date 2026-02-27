@@ -2,6 +2,7 @@ const SHELF_ITEMS_KEY = 'shelfItems';
 const SHELF_HIDDEN_LOG_IDS = 'shelfHiddenLogIds'; // 从打卡同步来的图在架上隐藏，不删打卡记录
 const cloudStore = require('../../utils/cloudStore.js');
 const cloudStorage = require('../../utils/cloudStorage.js');
+const imageCache = require('../../utils/imageCache.js');
 
 function formatDate(date) {
   const y = date.getFullYear();
@@ -10,16 +11,35 @@ function formatDate(date) {
   return `${y}-${m}-${d}`;
 }
 
-/** 合并云端 coffeeLogs 与本地，保留本地已设置的 cutoutUrl，避免被旧云端数据覆盖导致反复抠图 */
+function jsonEquals(a, b) {
+  try {
+    return JSON.stringify(a) === JSON.stringify(b);
+  } catch (e) {
+    return false;
+  }
+}
+
+function canCallCloud() {
+  return !!(wx.cloud && wx.cloud.callFunction);
+}
+
+/** 合并云端 coffeeLogs 与本地，保留本地已设置的 cutoutUrl；本地独有日期/条目不丢失 */
 function mergeCoffeeLogsPreserveCutout(cloudLogs, localLogs) {
   const out = {};
-  const dates = Object.keys(cloudLogs || {});
+  const cloudDates = Object.keys(cloudLogs || {});
+  const localDates = Object.keys(localLogs || {});
+  const dates = [...new Set([...cloudDates, ...localDates])];
   dates.forEach((date) => {
     const cloudDay = cloudLogs[date];
     const localDay = localLogs[date];
-    const arr = Array.isArray(cloudDay) ? cloudDay : (cloudDay ? [cloudDay] : []);
-    out[date] = arr.map((log, logIndex) => {
-      const localLog = Array.isArray(localDay) && localDay[logIndex] ? localDay[logIndex] : null;
+    const cloudArr = Array.isArray(cloudDay) ? cloudDay : (cloudDay ? [cloudDay] : []);
+    const localArr = Array.isArray(localDay) ? localDay : (localDay ? [localDay] : []);
+    if (cloudArr.length === 0) {
+      out[date] = localArr;
+      return;
+    }
+    out[date] = cloudArr.map((log, logIndex) => {
+      const localLog = localArr[logIndex] || null;
       const photos = Array.isArray(log.photos) ? log.photos : [];
       const mergedPhotos = photos.map((p, photoIndex) => {
         const localPhoto = localLog && localLog.photos && localLog.photos[photoIndex] ? localLog.photos[photoIndex] : null;
@@ -28,6 +48,9 @@ function mergeCoffeeLogsPreserveCutout(cloudLogs, localLogs) {
       });
       return { ...log, photos: mergedPhotos };
     });
+    if (localArr.length > cloudArr.length) {
+      out[date] = out[date].concat(localArr.slice(cloudArr.length));
+    }
   });
   return out;
 }
@@ -79,6 +102,8 @@ Page({
   },
 
   loadShelf(fromCloudSync) {
+    this._shelfReqId = (this._shelfReqId || 0) + 1;
+    const reqId = this._shelfReqId;
     const localCoffee = cloudStore.getJsonLocal('coffeeLogs') || {};
     let added = cloudStore.getJsonLocal(SHELF_ITEMS_KEY);
     if (!Array.isArray(added)) added = [];
@@ -109,7 +134,21 @@ Page({
       }))
     ];
     const rows = this.toRows(combined, 4);
-    this.setData({ items: combined, rows, coffeeCount: combined.length });
+    // 仅当列表「指纹」变化时才 setData，避免切 tab / 云端回调导致无意义重绘和闪烁
+    const fingerprint = combined.map((p) => `${p.id}\n${p.cutoutUrl || p.url || ''}`).join('\n');
+    if (this._shelfFingerprint !== fingerprint) {
+      this._shelfFingerprint = fingerprint;
+      this.setData({ items: combined, rows, coffeeCount: combined.length });
+    }
+    const prefetchUrls = combined
+      .slice(0, 24)
+      .map((p) => p.cutoutUrl || p.url)
+      .filter((u) => u && String(u).startsWith('cloud://'));
+    const prefetchFingerprint = prefetchUrls.join('\n');
+    if (prefetchFingerprint && this._prefetchFingerprint !== prefetchFingerprint) {
+      this._prefetchFingerprint = prefetchFingerprint;
+      imageCache.prefetch(prefetchUrls, 4).catch(() => {});
+    }
 
     // 仅首次进入/刷新时触发打卡图后台抠图，云端同步回调里不触发，避免反复抠同一张
     if (!fromCloudSync) {
@@ -124,12 +163,15 @@ Page({
       cloudStore.getJson(SHELF_ITEMS_KEY),
       cloudStore.getJson(SHELF_HIDDEN_LOG_IDS)
     ]).then(([cloudCoffee, cloudAdded, cloudHidden]) => {
+      if (reqId !== this._shelfReqId) return;
       let updated = false;
       if (cloudCoffee && typeof cloudCoffee === 'object') {
         const localNow = cloudStore.getJsonLocal('coffeeLogs') || {};
         const merged = mergeCoffeeLogsPreserveCutout(cloudCoffee, localNow);
-        wx.setStorageSync('coffeeLogs', merged);
-        updated = true;
+        if (!jsonEquals(localNow, merged)) {
+          wx.setStorageSync('coffeeLogs', merged);
+          updated = true;
+        }
       }
       if (Array.isArray(cloudAdded)) {
         const localNow = cloudStore.getJsonLocal(SHELF_ITEMS_KEY) || [];
@@ -138,14 +180,18 @@ Page({
           if (loc && loc.cutoutUrl) return { ...c, cutoutUrl: loc.cutoutUrl };
           return c;
         });
-        wx.setStorageSync(SHELF_ITEMS_KEY, merged);
-        updated = true;
+        if (!jsonEquals(localNow, merged)) {
+          wx.setStorageSync(SHELF_ITEMS_KEY, merged);
+          updated = true;
+        }
       }
       if (Array.isArray(cloudHidden)) {
         const localHidden = cloudStore.getJsonLocal(SHELF_HIDDEN_LOG_IDS) || [];
         const mergedHidden = [...new Set([...(Array.isArray(localHidden) ? localHidden : []), ...cloudHidden])];
-        wx.setStorageSync(SHELF_HIDDEN_LOG_IDS, mergedHidden);
-        updated = true;
+        if (!jsonEquals(localHidden, mergedHidden)) {
+          wx.setStorageSync(SHELF_HIDDEN_LOG_IDS, mergedHidden);
+          updated = true;
+        }
       }
       if (updated) this.loadShelf(true);
     }).catch(() => {});
@@ -213,11 +259,19 @@ Page({
     });
   },
 
-  /** 根据 id 从咖啡架移除一张「从相册添加」的照片 */
+  /** 根据 id 从咖啡架移除一张「从相册添加」的照片，并同步删除云存储里的原图与抠图 */
   removeFromShelfById(id) {
     if (!id || !id.startsWith('shelf_')) return;
     let added = cloudStore.getJsonLocal(SHELF_ITEMS_KEY);
     if (!Array.isArray(added)) added = [];
+    const item = added.find((p) => p.id === id);
+    const fileIDs = [];
+    if (item) {
+      if (item.url && String(item.url).startsWith('cloud://')) fileIDs.push(item.url);
+      if (item.cutoutUrl && String(item.cutoutUrl).startsWith('cloud://')) fileIDs.push(item.cutoutUrl);
+    }
+    if (fileIDs.length) cloudStorage.deleteCloudFiles(fileIDs).catch(() => {});
+
     const next = added.filter((p) => p.id !== id);
     wx.setStorageSync(SHELF_ITEMS_KEY, next);
     cloudStore.setJson(SHELF_ITEMS_KEY, next).catch(() => {});
@@ -228,6 +282,7 @@ Page({
   /** 打卡图后台自动抠图：对需要抠图的 log id 依次调用，避免重复触发 */
   runBackgroundCutoutLog(ids) {
     if (!ids || !ids.length) return;
+    if (!canCallCloud()) return;
     this._logCutoutPending = this._logCutoutPending || new Set();
     const runOne = (id) => {
       if (this._logCutoutPending.has(id)) return Promise.resolve();
@@ -272,6 +327,7 @@ Page({
   /** 后台自动抠图：对指定 shelf id 列表依次调用抠图，完成后更新展示 */
   runBackgroundCutout(ids) {
     if (!ids || !ids.length) return;
+    if (!canCallCloud()) return;
     const runOne = (id) => {
       let added = cloudStore.getJsonLocal(SHELF_ITEMS_KEY);
       if (!Array.isArray(added)) added = [];
@@ -398,6 +454,10 @@ Page({
   doSegment(photo) {
     const id = photo.id;
     if (!id || !id.startsWith('shelf_')) return;
+    if (!canCallCloud()) {
+      wx.showToast({ title: '云能力不可用', icon: 'none' });
+      return;
+    }
     wx.showLoading({ title: '抠图中…' });
     wx.cloud
       .callFunction({ name: 'segmentImage', data: { fileID: photo.url } })
@@ -446,6 +506,10 @@ Page({
   doSegmentLog(photo) {
     const parsed = this.parseLogId(photo.id);
     if (!parsed) return;
+    if (!canCallCloud()) {
+      wx.showToast({ title: '云能力不可用', icon: 'none' });
+      return;
+    }
     wx.showLoading({ title: '抠图中…' });
     wx.cloud
       .callFunction({ name: 'segmentImage', data: { fileID: photo.url } })

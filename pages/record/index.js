@@ -1,5 +1,15 @@
 const cloudStore = require('../../utils/cloudStore.js');
 const cloudStorage = require('../../utils/cloudStorage.js');
+const MAX_SHOP_LEN = 40;
+const MAX_NOTE_LEN = 300;
+const MAX_REMARK_LEN = 30;
+
+function normalizeText(value, maxLen, keepNewline) {
+  const raw = value == null ? '' : String(value);
+  const noCtl = raw.replace(keepNewline ? /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g : /[\u0000-\u001F\u007F]/g, '');
+  const clipped = typeof maxLen === 'number' && maxLen > 0 ? noCtl.slice(0, maxLen) : noCtl;
+  return keepNewline ? clipped : clipped.replace(/\s+/g, ' ').trim();
+}
 
 Page({
   data: {
@@ -10,6 +20,7 @@ Page({
       shop: '',
       mood: '',
       rating: 0,
+      note: '',
       photos: []
     },
     todayCount: 0,
@@ -57,6 +68,7 @@ Page({
         shop: '',
         mood: '',
         rating: 0,
+        note: '',
         photos: []
       };
       if (editIndex >= 0 && editIndex < logsOfDay.length) {
@@ -67,6 +79,7 @@ Page({
           shop: entry.shop || '',
           mood: entry.mood || '',
           rating: entry.rating || 0,
+          note: entry.note || '',
           photos: Array.isArray(entry.photos) ? entry.photos : [],
           id: entry.id,
           createdAt: entry.createdAt
@@ -82,7 +95,7 @@ Page({
       console.error('loadLog local fail', e);
       this.setData({
         today: date,
-        log: { date, source: '自制', shop: '', mood: '', rating: 0, photos: [] },
+        log: { date, source: '自制', shop: '', mood: '', rating: 0, note: '', photos: [] },
         todayCount: 0
       });
     }
@@ -103,8 +116,9 @@ Page({
   },
 
   onShopInput(e) {
+    const shop = normalizeText(e.detail && e.detail.value, MAX_SHOP_LEN, false);
     this.setData({
-      'log.shop': e.detail.value
+      'log.shop': shop
     });
   },
 
@@ -124,8 +138,9 @@ Page({
       success(res) {
         const name = res.name || res.address || '';
         if (name) {
+          const safeShop = normalizeText(name, MAX_SHOP_LEN, false);
           that.setData({
-            'log.shop': name,
+            'log.shop': safeShop,
             'log.location': {
               latitude: res.latitude,
               longitude: res.longitude,
@@ -235,11 +250,18 @@ Page({
 
   onPhotoRemarkInput(e) {
     const index = e.currentTarget.dataset.index;
-    const value = (e.detail && e.detail.value) || '';
+    const value = normalizeText((e.detail && e.detail.value) || '', MAX_REMARK_LEN, false);
     const photos = (this.data.log.photos || []).slice();
     if (index == null || index < 0 || index >= photos.length) return;
     photos[index] = { ...photos[index], remark: value };
     this.setData({ 'log.photos': photos });
+  },
+
+  onNoteInput(e) {
+    const value = normalizeText((e.detail && e.detail.value) || '', MAX_NOTE_LEN, true);
+    this.setData({
+      'log.note': value
+    });
   },
 
   async onPunch() {
@@ -252,6 +274,18 @@ Page({
       wx.showToast({ title: '请先填写店铺', icon: 'none' });
       return;
     }
+    const safeLog = {
+      ...log,
+      shop: normalizeText(log.shop, MAX_SHOP_LEN, false),
+      note: normalizeText(log.note, MAX_NOTE_LEN, true),
+      photos: Array.isArray(log.photos)
+        ? log.photos.map((p) => {
+          if (typeof p === 'string') return { url: p, remark: '' };
+          if (!p || typeof p !== 'object') return p;
+          return { ...p, remark: normalizeText(p.remark, MAX_REMARK_LEN, false) };
+        })
+        : []
+    };
     let allLogs = cloudStore.getJsonLocal('coffeeLogs') || {};
     const date = this.data.today;
     const value = allLogs[date];
@@ -265,14 +299,14 @@ Page({
     if (editIndex >= 0 && editIndex < logsOfDay.length) {
       const existing = logsOfDay[editIndex];
       logsOfDay[editIndex] = {
-        ...log,
+        ...safeLog,
         date,
         id: existing.id || Date.now(),
         createdAt: existing.createdAt || Date.now()
       };
     } else {
       const newEntry = {
-        ...log,
+        ...safeLog,
         date,
         id: log.id || Date.now(),
         createdAt: log.createdAt || Date.now()
@@ -290,6 +324,7 @@ Page({
         shop: '',
         mood: '',
         rating: 0,
+        note: '',
         photos: []
       },
       todayCount: logsOfDay.length,
@@ -321,4 +356,3 @@ Page({
   },
 
 });
-

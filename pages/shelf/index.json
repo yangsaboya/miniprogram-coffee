@@ -1,1 +1,6 @@
-{"navigationBarTitleText":"咖啡架"}
+{
+  "navigationBarTitleText": "咖啡架",
+  "usingComponents": {
+    "cached-image": "/components/cached-image/index"
+  }
+}

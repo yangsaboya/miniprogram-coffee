@@ -1,201 +1,77 @@
 .page {
   min-height: 100vh;
   padding: 24rpx 32rpx 48rpx;
-  background: radial-gradient(circle at top, #fdf6ec 0, #f7f3ee 45%, #f3eee8 100%);
   box-sizing: border-box;
+  background: radial-gradient(circle at top, #fdf6ec 0, #f7f3ee 45%, #f3eee8 100%);
 }
 
 .shelf-header {
-  padding: 24rpx 0 32rpx;
+  padding: 20rpx 0 28rpx;
   text-align: center;
 }
 
 .shelf-title {
   font-size: 36rpx;
-  font-weight: 600;
+  font-weight: 700;
   color: #6f4e37;
-}
-
-.shelf-desc {
-  margin-top: 12rpx;
-  font-size: 26rpx;
-  color: #8b7355;
 }
 
 .shelf-summary {
-  margin-top: 16rpx;
-  font-size: 26rpx;
-  color: #a08b6e;
-}
-
-.shelf-wrap {
-  margin-bottom: 32rpx;
-}
-
-.shelf-row {
-  position: relative;
-  margin-bottom: 32rpx;
-}
-
-.shelf-board {
-  position: absolute;
-  left: -16rpx;
-  right: -16rpx;
-  bottom: 0;
-  height: 24rpx;
-  background: linear-gradient(180deg, #8b6914 0, #6f4e37 30%, #5c3d2e 100%);
-  border-radius: 4rpx;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.2);
-}
-
-.shelf-slots {
-  display: flex;
-  justify-content: flex-start;
-  flex-wrap: wrap;
-  gap: 20rpx;
-  padding: 0 8rpx 32rpx;
-}
-
-.shelf-slot {
-  width: 22%;
-  aspect-ratio: 1;
-  background: #f7f3ee;
-  border-radius: 12rpx;
-  overflow: hidden;
-  box-shadow: 0 4rpx 16rpx rgba(111, 78, 55, 0.15);
-  border: 4rpx solid #e8dfd5;
-  position: relative;
-  box-sizing: border-box;
-}
-
-/* 抠图展示：用页面背景底色、去掉边框，和架子融为一体 */
-.shelf-slot--cutout {
-  background: #f7f3ee;
-  border: none;
-  box-shadow: none;
-}
-
-.shelf-photo {
-  width: 100%;
-  height: 100%;
-  display: block;
-  background: transparent;
-}
-
-.shelf-slot__del {
-  position: absolute;
-  top: 4rpx;
-  right: 4rpx;
-  width: 44rpx;
-  height: 44rpx;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.5);
-  color: #fff;
-  font-size: 36rpx;
-  line-height: 44rpx;
-  text-align: center;
-  z-index: 2;
-}
-
-.shelf-empty {
-  padding: 80rpx 32rpx;
-  text-align: center;
-}
-
-.shelf-empty__text {
-  display: block;
-  font-size: 30rpx;
-  color: #8b7355;
-}
-
-.shelf-empty__hint {
-  display: block;
-  margin-top: 16rpx;
-  font-size: 24rpx;
-  color: #a08b6e;
-}
-
-.shelf-actions {
-  padding: 24rpx 0;
-}
-
-.shelf-actions .weui-btn {
-  width: 100%;
-  box-sizing: border-box;
-  white-space: nowrap;
-  background: linear-gradient(135deg, #6f4e37, #8b5a3c);
-  color: #fdf6ec;
-}
-
-.page {
-  min-height: 100vh;
-  padding: 24rpx 32rpx 48rpx;
-  background: radial-gradient(circle at top, #fdf6ec 0, #f7f3ee 45%, #f3eee8 100%);
-  box-sizing: border-box;
-}
-
-.shelf-header {
-  padding: 24rpx 0 32rpx;
-  text-align: center;
-}
-
-.shelf-title {
-  font-size: 36rpx;
+  margin-top: 14rpx;
+  font-size: 28rpx;
   font-weight: 600;
   color: #6f4e37;
 }
 
 .shelf-desc {
-  margin-top: 12rpx;
-  font-size: 26rpx;
+  margin-top: 10rpx;
+  font-size: 24rpx;
   color: #8b7355;
 }
 
 .shelf-wrap {
-  margin-bottom: 32rpx;
+  margin-bottom: 28rpx;
 }
 
 .shelf-row {
   position: relative;
-  margin-bottom: 32rpx;
+  margin-bottom: 30rpx;
 }
 
 .shelf-board {
   position: absolute;
-  left: -16rpx;
-  right: -16rpx;
+  left: -12rpx;
+  right: -12rpx;
   bottom: 0;
   height: 24rpx;
-  background: linear-gradient(180deg, #8b6914 0, #6f4e37 30%, #5c3d2e 100%);
-  border-radius: 4rpx;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.2);
+  border-radius: 6rpx;
+  background: linear-gradient(180deg, #8b6914 0, #6f4e37 32%, #5c3d2e 100%);
+  box-shadow: 0 6rpx 14rpx rgba(0, 0, 0, 0.18);
 }
 
 .shelf-slots {
   display: flex;
-  justify-content: flex-start;
   flex-wrap: wrap;
-  gap: 20rpx;
-  padding: 0 8rpx 32rpx;
+  gap: 18rpx;
+  padding: 0 8rpx 30rpx;
 }
 
 .shelf-slot {
   width: 22%;
   aspect-ratio: 1;
-  background: #f7f3ee;
-  border-radius: 12rpx;
-  overflow: hidden;
-  box-shadow: 0 4rpx 16rpx rgba(111, 78, 55, 0.15);
-  border: 4rpx solid #e8dfd5;
   position: relative;
+  overflow: hidden;
+  border-radius: 14rpx;
+  border: 4rpx solid #e8dfd5;
+  background: #f7f3ee;
+  box-shadow: 0 6rpx 16rpx rgba(111, 78, 55, 0.14);
   box-sizing: border-box;
 }
 
-/* 抠图展示：用页面背景底色、去掉边框，和架子融为一体 */
 .shelf-slot--cutout {
-  background: #f7f3ee;
   border: none;
   box-shadow: none;
+  background: #f7f3ee;
 }
 
 .shelf-photo {
@@ -205,61 +81,40 @@
   background: transparent;
 }
 
-.shelf-remark {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  padding: 8rpx;
-  font-size: 20rpx;
-  color: #fff;
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.6));
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.shelf-slot__del {
-  position: absolute;
-  top: 4rpx;
-  right: 4rpx;
-  width: 44rpx;
-  height: 44rpx;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.5);
-  color: #fff;
-  font-size: 36rpx;
-  line-height: 44rpx;
-  text-align: center;
-  z-index: 2;
-}
-
 .shelf-empty {
-  padding: 80rpx 32rpx;
+  margin-top: 10rpx;
+  padding: 72rpx 28rpx;
+  border-radius: 16rpx;
   text-align: center;
+  background: rgba(255, 255, 255, 0.68);
 }
 
 .shelf-empty__text {
   display: block;
   font-size: 30rpx;
-  color: #8b7355;
+  color: #7c644f;
 }
 
 .shelf-empty__hint {
   display: block;
-  margin-top: 16rpx;
+  margin-top: 14rpx;
   font-size: 24rpx;
   color: #a08b6e;
+  line-height: 1.5;
 }
 
 .shelf-actions {
-  padding: 24rpx 0;
+  padding: 20rpx 0 8rpx;
 }
 
 .shelf-actions .weui-btn {
   width: 100%;
+  height: 84rpx;
+  line-height: 84rpx;
+  border-radius: 999rpx;
   box-sizing: border-box;
   white-space: nowrap;
+  font-size: 30rpx;
   background: linear-gradient(135deg, #6f4e37, #8b5a3c);
   color: #fdf6ec;
 }

@@ -1,9 +1,13 @@
 const cloudStore = require('../../utils/cloudStore.js');
 
+// 默认北京，仅在没有定位且没有打卡点时使用
+const DEFAULT_LAT = 39.9042;
+const DEFAULT_LNG = 116.4074;
+
 Page({
   data: {
-    latitude: 39.9042,
-    longitude: 116.4074,
+    latitude: DEFAULT_LAT,
+    longitude: DEFAULT_LNG,
     scale: 12,
     markers: [],
     markerDetails: {},
@@ -15,12 +19,36 @@ Page({
 
   onLoad() {
     this.loadMarkers();
+    // 地图渲染后再移到当前定位，避免一打开就偏到别处
+    setTimeout(() => this.moveToMyLocation(), 300);
   },
 
   onShow() {
     const tabBar = this.getTabBar && this.getTabBar();
     if (tabBar && tabBar.setData) tabBar.setData({ selected: 1 });
     this.loadMarkers();
+  },
+
+  onLocateTap() {
+    this.moveToMyLocation(true);
+  },
+
+  /** 用地图上下文把中心移到当前定位点（蓝点），需配合 map 的 show-location */
+  moveToMyLocation(showSuccessToast) {
+    const mapCtx = wx.createMapContext('footprintMap', this);
+    if (!mapCtx || !mapCtx.moveToLocation) {
+      wx.showToast({ title: '当前环境不支持定位', icon: 'none' });
+      return;
+    }
+    mapCtx.moveToLocation({
+      success: () => {
+        if (showSuccessToast) wx.showToast({ title: '已移到我的位置', icon: 'none' });
+      },
+      fail: (err) => {
+        console.error('moveToLocation fail', err);
+        wx.showToast({ title: '定位失败，请检查是否授权位置', icon: 'none' });
+      }
+    });
   },
 
   countUniqueShops(allLogs) {
@@ -80,26 +108,20 @@ Page({
   },
 
   loadMarkers() {
+    this._markersReqId = (this._markersReqId || 0) + 1;
+    const reqId = this._markersReqId;
     const allLogs = cloudStore.getJsonLocal('coffeeLogs') || {};
-    const { markers, markerDetails, firstLat, firstLng } = this.buildMarkersFromLogs(allLogs);
+    const { markers, markerDetails } = this.buildMarkersFromLogs(allLogs);
     const totalShopCount = this.countUniqueShops(allLogs);
-    if (firstLat !== null) {
-      this.setData({ latitude: firstLat, longitude: firstLng, markers, markerDetails, totalShopCount });
-    } else {
-      this.setData({ markers: [], markerDetails: {}, totalShopCount });
-    }
+    // 只更新标记与统计，不改地图中心（中心由「当前定位」或默认北京决定）
+    this.setData({ markers, markerDetails, totalShopCount });
     cloudStore.getJson('coffeeLogs').then((cloudRaw) => {
+      if (reqId !== this._markersReqId) return;
       if (cloudRaw && typeof cloudRaw === 'object') {
         wx.setStorageSync('coffeeLogs', cloudRaw);
         const res = this.buildMarkersFromLogs(cloudRaw);
         const totalShopCount = this.countUniqueShops(cloudRaw);
-        this.setData({
-          latitude: res.firstLat !== null ? res.firstLat : this.data.latitude,
-          longitude: res.firstLng !== null ? res.firstLng : this.data.longitude,
-          markers: res.markers,
-          markerDetails: res.markerDetails,
-          totalShopCount
-        });
+        this.setData({ markers: res.markers, markerDetails: res.markerDetails, totalShopCount });
       }
     }).catch(() => {});
   },
@@ -125,4 +147,3 @@ Page({
     });
   }
 });
-

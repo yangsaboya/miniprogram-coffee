@@ -179,6 +179,14 @@
   color: #f5c26b;
 }
 
+.note-textarea {
+  width: 100%;
+  min-height: 80rpx;
+  font-size: 28rpx;
+  padding: 12rpx 0;
+  color: #3a2c23;
+}
+
 .weui-input {
   width: 100%;
   font-size: 28rpx;
@@ -346,10 +354,6 @@
   padding: 0;
   box-sizing: border-box;
   border: 2rpx solid transparent;
-}
-
-.footer-btns {
-  margin-top: -40rpx;
 }
 
 .footer-btns .weui-btn_default {

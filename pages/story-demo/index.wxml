@@ -1,0 +1,74 @@
+<view class="page theme-{{theme}}">
+  <view class="hero">
+    <view class="hero-title">Coffee Story Card UX Demo</view>
+    <view class="hero-sub">合并智能复盘 + 最佳瞬间 + 微信分享</view>
+  </view>
+
+  <view class="controls">
+    <view class="row">
+      <text class="label">模式</text>
+      <view class="chips">
+        <view class="chip {{mode === 'weekly' ? 'chip--active' : ''}}" data-mode="weekly" bindtap="onModeTap">周卡</view>
+        <view class="chip {{mode === 'daily' ? 'chip--active' : ''}}" data-mode="daily" bindtap="onModeTap">日卡</view>
+      </view>
+    </view>
+    <view class="row">
+      <text class="label">主题</text>
+      <view class="chips">
+        <view class="chip {{theme === 'latte' ? 'chip--active' : ''}}" data-theme="latte" bindtap="onThemeTap">Latte</view>
+        <view class="chip {{theme === 'matcha' ? 'chip--active' : ''}}" data-theme="matcha" bindtap="onThemeTap">Matcha</view>
+        <view class="chip {{theme === 'graphite' ? 'chip--active' : ''}}" data-theme="graphite" bindtap="onThemeTap">Graphite</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="story-card">
+    <view class="story-head">
+      <view>
+        <view class="story-title">{{cardTitle}}</view>
+        <view class="story-date">{{weekLabel}}</view>
+      </view>
+      <view class="story-tag">AUTO</view>
+    </view>
+
+    <view class="stats-grid">
+      <view class="stat"><text class="stat-value">{{summary.cups}}</text><text class="stat-label">杯数</text></view>
+      <view class="stat"><text class="stat-value">{{summary.shops}}</text><text class="stat-label">新店</text></view>
+      <view class="stat"><text class="stat-value">{{summary.avgRating}}</text><text class="stat-label">均分</text></view>
+      <view class="stat"><text class="stat-value">{{summary.mood}}</text><text class="stat-label">情绪</text></view>
+    </view>
+
+    <view class="best-photo" wx:if="{{activePhoto}}">
+      <image class="best-photo__img" src="{{activePhoto.url}}" mode="aspectFill" />
+      <view class="best-photo__overlay">
+        <text class="best-photo__title">Best Moment · {{activePhoto.shop}}</text>
+        <text class="best-photo__meta">{{activePhoto.date}} · {{activePhoto.rating}}★</text>
+      </view>
+    </view>
+
+    <view class="caption">{{caption}}</view>
+  </view>
+
+  <view class="panel">
+    <view class="panel-title">最佳瞬间候选（可手动替换）</view>
+    <scroll-view class="thumb-scroll" scroll-x="true" enable-flex="true">
+      <view class="thumb-list">
+        <view class="thumb {{activePhotoIndex === index ? 'thumb--active' : ''}}" wx:for="{{photos}}" wx:key="url" wx:for-item="item" wx:for-index="index" data-index="{{index}}" bindtap="onSelectPhoto">
+          <image class="thumb-img" src="{{item.url}}" mode="aspectFill" />
+          <view class="thumb-badge">{{item.rating}}★</view>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <view class="panel">
+    <view class="panel-title">分享文案</view>
+    <textarea class="caption-input" value="{{draftCaption}}" maxlength="80" bindinput="onCaptionInput" />
+    <view class="actions">
+      <button class="btn btn-ghost" bindtap="onApplyCaption">应用文案</button>
+      <button class="btn" bindtap="onGenerate">重新生成</button>
+      <button class="btn btn-share" bindtap="onShareMock">分享到微信</button>
+    </view>
+    <view class="hint">{{shareCountHint}}</view>
+  </view>
+</view>
