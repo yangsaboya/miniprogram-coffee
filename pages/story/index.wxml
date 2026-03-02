@@ -70,10 +70,15 @@
     <view class="panel-title">分享文案</view>
     <textarea class="caption-input" value="{{draftCaption}}" maxlength="80" bindinput="onCaptionInput" />
     <view class="actions">
-      <button class="btn btn-save" bindtap="onApplyCaption">保存文案</button>
       <button class="btn btn-refresh" bindtap="onGenerate">刷新内容</button>
-      <button class="btn btn-share" open-type="share" bindtap="onShareMock">立即分享</button>
+      <button class="btn btn-share" bindtap="onSavePoster">保存海报</button>
     </view>
-    <view class="actions-tip">先点“保存文案”，再点“立即分享”发送到微信。</view>
+    <view class="actions-tip">文案会实时更新，确认后点“保存海报”存到系统相册。</view>
   </view>
+
+  <canvas
+    canvas-id="storyPosterCanvas"
+    class="poster-canvas"
+    style="position: fixed; left: -9999px; top: -9999px; width: 750px; height: 1200px;"
+  />
 </view>

@@ -316,19 +316,9 @@ Page({
     allLogs[date] = logsOfDay;
     wx.setStorageSync('coffeeLogs', allLogs);
 
-    // 先存本地，立刻给成功反馈，弱网也能打卡；云端后台同步
+    // 不在当前页先清空内容，避免用户感知“空闪”；直接提示后返回上页
     this.setData({
-      log: {
-        date,
-        source: '自制',
-        shop: '',
-        mood: '',
-        rating: 0,
-        note: '',
-        photos: []
-      },
       todayCount: logsOfDay.length,
-      editIndex: -1,
       punching: false
     });
 

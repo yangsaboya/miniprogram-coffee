@@ -285,11 +285,6 @@
   border: none;
 }
 
-.btn-save {
-  background: rgba(127, 79, 42, 0.18);
-  color: #4f3624;
-}
-
 .btn-refresh {
   background: linear-gradient(120deg, #9b6a44, #7f4f2a);
 }
@@ -303,4 +298,14 @@
   font-size: 20rpx;
   color: var(--muted);
   line-height: 1.45;
+}
+
+.poster-canvas {
+  position: fixed;
+  left: -9999px;
+  top: -9999px;
+  width: 750px;
+  height: 1200px;
+  opacity: 0;
+  pointer-events: none;
 }
