@@ -4,12 +4,7 @@ const cloudStore = require('../../utils/cloudStore.js');
 const cloudStorage = require('../../utils/cloudStorage.js');
 const imageCache = require('../../utils/imageCache.js');
 
-function formatDate(date) {
-  const y = date.getFullYear();
-  const m = `${date.getMonth() + 1}`.padStart(2, '0');
-  const d = `${date.getDate()}`.padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
+const { formatDate } = require('../../utils/date.js');
 
 function jsonEquals(a, b) {
   try {
@@ -23,37 +18,7 @@ function canCallCloud() {
   return !!(wx.cloud && wx.cloud.callFunction);
 }
 
-/** 合并云端 coffeeLogs 与本地，保留本地已设置的 cutoutUrl；本地独有日期/条目不丢失 */
-function mergeCoffeeLogsPreserveCutout(cloudLogs, localLogs) {
-  const out = {};
-  const cloudDates = Object.keys(cloudLogs || {});
-  const localDates = Object.keys(localLogs || {});
-  const dates = [...new Set([...cloudDates, ...localDates])];
-  dates.forEach((date) => {
-    const cloudDay = cloudLogs[date];
-    const localDay = localLogs[date];
-    const cloudArr = Array.isArray(cloudDay) ? cloudDay : (cloudDay ? [cloudDay] : []);
-    const localArr = Array.isArray(localDay) ? localDay : (localDay ? [localDay] : []);
-    if (cloudArr.length === 0) {
-      out[date] = localArr;
-      return;
-    }
-    out[date] = cloudArr.map((log, logIndex) => {
-      const localLog = localArr[logIndex] || null;
-      const photos = Array.isArray(log.photos) ? log.photos : [];
-      const mergedPhotos = photos.map((p, photoIndex) => {
-        const localPhoto = localLog && localLog.photos && localLog.photos[photoIndex] ? localLog.photos[photoIndex] : null;
-        if (localPhoto && localPhoto.cutoutUrl) return { ...p, cutoutUrl: localPhoto.cutoutUrl };
-        return p;
-      });
-      return { ...log, photos: mergedPhotos };
-    });
-    if (localArr.length > cloudArr.length) {
-      out[date] = out[date].concat(localArr.slice(cloudArr.length));
-    }
-  });
-  return out;
-}
+const mergeCoffeeLogsPreserveCutout = cloudStore.mergeCoffeeLogs;
 
 Page({
   data: {
@@ -63,13 +28,20 @@ Page({
   },
 
   onLoad() {
+    this._freshLoad = true;
     this.loadShelf();
   },
 
   onShow() {
     const tabBar = this.getTabBar && this.getTabBar();
     if (tabBar && tabBar.setData) tabBar.setData({ selected: 2 });
+    if (this._freshLoad) { this._freshLoad = false; return; }
     this.loadShelf();
+  },
+
+  _debouncedLoadShelf() {
+    if (this._loadShelfTimer) clearTimeout(this._loadShelfTimer);
+    this._loadShelfTimer = setTimeout(() => { this.loadShelf(); }, 500);
   },
 
   collectPhotosFromRaw(raw) {
@@ -113,14 +85,15 @@ Page({
     if (needMigrate && added.length) {
       added = added.map((p) => (p.id ? p : { ...p, id: 'shelf_' + Date.now() + '_' + Math.random().toString(36).slice(2) }));
       wx.setStorageSync(SHELF_ITEMS_KEY, added);
-      cloudStore.setJson(SHELF_ITEMS_KEY, added).catch(() => {});
+      cloudStore.setJson(SHELF_ITEMS_KEY, added).catch((e) => { console.warn('[shelf]', e); });
     }
     let fromLogs = this.collectPhotosFromRaw(localCoffee);
     fromLogs = fromLogs.map((p) => ({
       ...p,
       id: 'log_' + (p.date || '') + '_' + (p.logIndex ?? 0) + '_' + (p.photoIndex ?? 0)
     }));
-    fromLogs = fromLogs.filter((p) => !hiddenLogIds.includes(p.id));
+    const hiddenSet = new Set(hiddenLogIds);
+    fromLogs = fromLogs.filter((p) => !hiddenSet.has(p.id));
     const addedItems = added;
     const combined = [
       ...fromLogs,
@@ -138,7 +111,10 @@ Page({
     const fingerprint = combined.map((p) => `${p.id}\n${p.cutoutUrl || p.url || ''}`).join('\n');
     if (this._shelfFingerprint !== fingerprint) {
       this._shelfFingerprint = fingerprint;
-      this.setData({ items: combined, rows, coffeeCount: combined.length });
+      this._items = combined;
+      this.setData({ rows, coffeeCount: combined.length });
+    } else {
+      this._items = combined;
     }
     const prefetchUrls = combined
       .slice(0, 24)
@@ -147,7 +123,7 @@ Page({
     const prefetchFingerprint = prefetchUrls.join('\n');
     if (prefetchFingerprint && this._prefetchFingerprint !== prefetchFingerprint) {
       this._prefetchFingerprint = prefetchFingerprint;
-      imageCache.prefetch(prefetchUrls, 4).catch(() => {});
+      imageCache.prefetch(prefetchUrls, 4).catch((e) => { console.warn('[shelf]', e); });
     }
 
     // 仅首次进入/刷新时触发打卡图后台抠图，云端同步回调里不触发，避免反复抠同一张
@@ -159,9 +135,9 @@ Page({
     }
 
     Promise.all([
-      cloudStore.getJson('coffeeLogs'),
-      cloudStore.getJson(SHELF_ITEMS_KEY),
-      cloudStore.getJson(SHELF_HIDDEN_LOG_IDS)
+      cloudStore.getJsonCached('coffeeLogs'),
+      cloudStore.getJsonCached(SHELF_ITEMS_KEY),
+      cloudStore.getJsonCached(SHELF_HIDDEN_LOG_IDS)
     ]).then(([cloudCoffee, cloudAdded, cloudHidden]) => {
       if (reqId !== this._shelfReqId) return;
       let updated = false;
@@ -194,69 +170,70 @@ Page({
         }
       }
       if (updated) this.loadShelf(true);
-    }).catch(() => {});
+    }).catch((e) => { console.warn('[shelf]', e); });
   },
 
   toRows(items, perRow) {
     const rows = [];
     for (let i = 0; i < items.length; i += perRow) {
-      rows.push(items.slice(i, i + perRow));
+      const chunk = items.slice(i, i + perRow);
+      chunk.rowKey = chunk.map((p) => p.id).join('_');
+      rows.push(chunk);
     }
     return rows;
   },
 
   addFromAlbum() {
     const that = this;
-    wx.chooseImage({
-      count: 9 - (that.data.items.length % 4 === 0 ? 0 : 1),
+    wx.chooseMedia({
+      count: 9,
+      mediaType: ['image'],
       sizeType: ['compressed'],
       sourceType: ['album'],
-      async success(res) {
-        const paths = res.tempFilePaths || [];
+      success(res) {
+        const paths = (res.tempFiles || []).map((f) => f.tempFilePath);
         if (!paths.length) return;
         wx.showLoading({ title: '上传中…' });
-        try {
-          const fileIDs = await Promise.all(paths.map((p) => cloudStorage.uploadImage(p)));
-          let added = cloudStore.getJsonLocal(SHELF_ITEMS_KEY);
-          if (!Array.isArray(added)) added = [];
-          const next = added.slice();
-          const base = Date.now();
-          const today = formatDate(new Date());
-          const newIds = [];
-          fileIDs.forEach((fileID, i) => {
-            const id = 'shelf_' + base + '_' + i + '_' + Math.random().toString(36).slice(2);
-            next.push({
-              id,
-              url: fileID,
-              remark: '',
-              date: today
+        Promise.all(paths.map((p) => cloudStorage.uploadImage(p)))
+          .then((fileIDs) => {
+            let added = cloudStore.getJsonLocal(SHELF_ITEMS_KEY);
+            if (!Array.isArray(added)) added = [];
+            const next = added.slice();
+            const base = Date.now();
+            const today = formatDate(new Date());
+            const newIds = [];
+            fileIDs.forEach((fileID, i) => {
+              const id = 'shelf_' + base + '_' + i + '_' + Math.random().toString(36).slice(2);
+              next.push({ id, url: fileID, remark: '', date: today });
+              newIds.push(id);
             });
-            newIds.push(id);
-          });
-          wx.setStorageSync(SHELF_ITEMS_KEY, next);
-          await cloudStore.setJson(SHELF_ITEMS_KEY, next);
-          that.loadShelf();
-          wx.showToast({ title: '已加入咖啡架', icon: 'none' });
-          // 后台自动抠图，完成后更新展示
-          that.runBackgroundCutout(newIds);
-        } catch (err) {
-          console.error('shelf photo upload fail', err);
-          wx.showToast({ title: '照片上传失败，请重试', icon: 'none' });
-        } finally {
-          wx.hideLoading();
-        }
+            wx.setStorageSync(SHELF_ITEMS_KEY, next);
+            return cloudStore.setJson(SHELF_ITEMS_KEY, next).then(() => newIds);
+          })
+          .then((newIds) => {
+            that.loadShelf();
+            wx.showToast({ title: '已加入咖啡架', icon: 'none' });
+            that.runBackgroundCutout(newIds);
+          })
+          .catch((err) => {
+            console.error('shelf photo upload fail', err);
+            wx.showToast({ title: '照片上传失败，请重试', icon: 'none' });
+          })
+          .finally(() => { wx.hideLoading(); });
       }
     });
   },
 
   onPreview(e) {
-    const url = e.currentTarget.dataset.url;
-    const list = this.data.items.map((i) => i.url);
-    if (!url || !list.length) return;
-    wx.previewImage({
-      current: url,
-      urls: list
+    const raw = e.currentTarget.dataset.cutoutUrl || e.currentTarget.dataset.url;
+    const items = this._items || [];
+    const urls = items.map((i) => {
+      const src = i.cutoutUrl || i.url;
+      return imageCache.getSync(src) || src;
     });
+    if (!raw || !urls.length) return;
+    const current = imageCache.getSync(raw) || raw;
+    wx.previewImage({ current, urls });
   },
 
   /** 根据 id 从咖啡架移除一张「从相册添加」的照片，并同步删除云存储里的原图与抠图 */
@@ -270,11 +247,11 @@ Page({
       if (item.url && String(item.url).startsWith('cloud://')) fileIDs.push(item.url);
       if (item.cutoutUrl && String(item.cutoutUrl).startsWith('cloud://')) fileIDs.push(item.cutoutUrl);
     }
-    if (fileIDs.length) cloudStorage.deleteCloudFiles(fileIDs).catch(() => {});
+    if (fileIDs.length) cloudStorage.deleteCloudFiles(fileIDs).catch((e) => { console.warn('[shelf]', e); });
 
     const next = added.filter((p) => p.id !== id);
     wx.setStorageSync(SHELF_ITEMS_KEY, next);
-    cloudStore.setJson(SHELF_ITEMS_KEY, next).catch(() => {});
+    cloudStore.setJson(SHELF_ITEMS_KEY, next).catch((e) => { console.warn('[shelf]', e); });
     this.loadShelf();
     wx.showToast({ title: '已从架上移除', icon: 'none' });
   },
@@ -310,10 +287,10 @@ Page({
           day[logIndex].photos[photoIndex] = { ...day[logIndex].photos[photoIndex], cutoutUrl: result.fileID };
           logs[date] = day;
           wx.setStorageSync('coffeeLogs', logs);
-          cloudStore.setJson('coffeeLogs', logs).catch(() => {});
-          this.loadShelf();
+          cloudStore.setJson('coffeeLogs', logs).catch((e) => { console.warn('[shelf]', e); });
+          this._debouncedLoadShelf();
         })
-        .catch(() => {})
+        .catch((e) => { console.warn('[shelf]', e); })
         .finally(() => {
           this._logCutoutPending.delete(id);
         });
@@ -346,10 +323,10 @@ Page({
           added = added.slice();
           added[i] = { ...added[i], cutoutUrl: result.fileID };
           wx.setStorageSync(SHELF_ITEMS_KEY, added);
-          cloudStore.setJson(SHELF_ITEMS_KEY, added).catch(() => {});
-          this.loadShelf();
+          cloudStore.setJson(SHELF_ITEMS_KEY, added).catch((e) => { console.warn('[shelf]', e); });
+          this._debouncedLoadShelf();
         })
-        .catch(() => {});
+        .catch((e) => { console.warn('[shelf]', e); });
     };
     let p = Promise.resolve();
     ids.forEach((id) => {
@@ -426,8 +403,9 @@ Page({
     if (!Array.isArray(hidden)) hidden = [];
     if (hidden.includes(photo.id)) return;
     hidden = hidden.concat(photo.id);
+    if (hidden.length > 500) hidden = hidden.slice(hidden.length - 500);
     wx.setStorageSync(SHELF_HIDDEN_LOG_IDS, hidden);
-    cloudStore.setJson(SHELF_HIDDEN_LOG_IDS, hidden).catch(() => {});
+    cloudStore.setJson(SHELF_HIDDEN_LOG_IDS, hidden).catch((e) => { console.warn('[shelf]', e); });
     this.loadShelf();
     wx.showToast({ title: '已从架上移除', icon: 'none' });
   },
@@ -445,7 +423,7 @@ Page({
     added[idx] = { ...item, cutoutUrl: '' };
     delete added[idx].cutoutUrl;
     wx.setStorageSync(SHELF_ITEMS_KEY, added);
-    cloudStore.setJson(SHELF_ITEMS_KEY, added).catch(() => {});
+    cloudStore.setJson(SHELF_ITEMS_KEY, added).catch((e) => { console.warn('[shelf]', e); });
     this.loadShelf();
     wx.showToast({ title: '已恢复原图', icon: 'none' });
   },
@@ -562,7 +540,7 @@ Page({
     delete logsOfDay[logIndex].photos[photoIndex].cutoutUrl;
     allLogs[date] = logsOfDay;
     wx.setStorageSync('coffeeLogs', allLogs);
-    cloudStore.setJson('coffeeLogs', allLogs).catch(() => {});
+    cloudStore.setJson('coffeeLogs', allLogs).catch((e) => { console.warn('[shelf]', e); });
     this.loadShelf();
     wx.showToast({ title: '已恢复原图', icon: 'none' });
   }

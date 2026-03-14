@@ -18,14 +18,22 @@ Page({
   },
 
   onLoad() {
+    this._freshLoad = true;
+    this._mapReady = false;
     this.loadMarkers();
-    // 地图渲染后再移到当前定位，避免一打开就偏到别处
-    setTimeout(() => this.moveToMyLocation(), 300);
+  },
+
+  onMapUpdated() {
+    if (!this._mapReady) {
+      this._mapReady = true;
+      this.moveToMyLocation();
+    }
   },
 
   onShow() {
     const tabBar = this.getTabBar && this.getTabBar();
     if (tabBar && tabBar.setData) tabBar.setData({ selected: 1 });
+    if (this._freshLoad) { this._freshLoad = false; return; }
     this.loadMarkers();
   },
 
@@ -97,7 +105,22 @@ Page({
       if (item.shop) titleParts.push(item.shop);
       if (loc.address && loc.address !== item.shop) titleParts.push(loc.address);
       const title = titleParts.join(' · ') || '咖啡打卡';
-      markers.push({ id, latitude: loc.latitude, longitude: loc.longitude, title, width: 24, height: 24 });
+      markers.push({
+        id,
+        latitude: loc.latitude,
+        longitude: loc.longitude,
+        title,
+        width: 28,
+        height: 28,
+        callout: {
+          content: item.shop || '咖啡打卡',
+          color: '#6f4e37',
+          fontSize: 12,
+          borderRadius: 8,
+          padding: 6,
+          display: 'BYCLICK'
+        }
+      });
       markerDetails[id] = { ...item, date };
       if (firstLat === null) {
         firstLat = loc.latitude;
@@ -115,15 +138,17 @@ Page({
     const totalShopCount = this.countUniqueShops(allLogs);
     // 只更新标记与统计，不改地图中心（中心由「当前定位」或默认北京决定）
     this.setData({ markers, markerDetails, totalShopCount });
-    cloudStore.getJson('coffeeLogs').then((cloudRaw) => {
+    cloudStore.getJsonCached('coffeeLogs').then((cloudRaw) => {
       if (reqId !== this._markersReqId) return;
       if (cloudRaw && typeof cloudRaw === 'object') {
-        wx.setStorageSync('coffeeLogs', cloudRaw);
-        const res = this.buildMarkersFromLogs(cloudRaw);
-        const totalShopCount = this.countUniqueShops(cloudRaw);
+        const localNow = cloudStore.getJsonLocal('coffeeLogs') || {};
+        const merged = cloudStore.mergeCoffeeLogs(cloudRaw, localNow);
+        wx.setStorageSync('coffeeLogs', merged);
+        const res = this.buildMarkersFromLogs(merged);
+        const totalShopCount = this.countUniqueShops(merged);
         this.setData({ markers: res.markers, markerDetails: res.markerDetails, totalShopCount });
       }
-    }).catch(() => {});
+    }).catch((e) => { console.warn('[map] cloud sync fail', e); });
   },
 
   onMarkerTap(e) {

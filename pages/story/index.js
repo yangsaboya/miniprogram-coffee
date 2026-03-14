@@ -1,11 +1,6 @@
 const cloudStore = require('../../utils/cloudStore.js');
 
-function formatDate(date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
+const { formatDate } = require('../../utils/date.js');
 
 function formatWeekLabel(baseDate) {
   const d = new Date(baseDate);
@@ -193,12 +188,14 @@ Page({
   },
 
   onLoad() {
+    this._freshLoad = true;
     this.refreshStory();
   },
 
   onShow() {
     const tabBar = this.getTabBar && this.getTabBar();
     if (tabBar && tabBar.setData) tabBar.setData({ selected: 3 });
+    if (this._freshLoad) { this._freshLoad = false; return; }
     this.refreshStory();
   },
 
@@ -307,13 +304,15 @@ Page({
     const next = this.buildStory(entries, mode, now);
     this.setData(next);
 
-    cloudStore.getJson('coffeeLogs').then((cloudRaw) => {
+    cloudStore.getJsonCached('coffeeLogs').then((cloudRaw) => {
       if (!cloudRaw || typeof cloudRaw !== 'object') return;
-      wx.setStorageSync('coffeeLogs', cloudRaw);
-      const cloudEntries = this.getFlattenedLogs(cloudRaw);
+      const localNow = cloudStore.getJsonLocal('coffeeLogs') || {};
+      const merged = cloudStore.mergeCoffeeLogs(cloudRaw, localNow);
+      wx.setStorageSync('coffeeLogs', merged);
+      const cloudEntries = this.getFlattenedLogs(merged);
       const list = this.filterByMode(cloudEntries, this.data.mode, now);
       this.setData(this.buildStory(list, this.data.mode, now));
-    }).catch(() => {});
+    }).catch((e) => { console.warn('[story] cloud sync fail', e); });
   },
 
   onModeTap(e) {

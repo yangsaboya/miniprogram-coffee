@@ -13,6 +13,7 @@
       scale="{{scale}}"
       markers="{{markers}}"
       bindmarkertap="onMarkerTap"
+      bindupdated="onMapUpdated"
       show-location
     />
     <view class="map-locate-btn" bindtap="onLocateTap">定位到我的位置</view>

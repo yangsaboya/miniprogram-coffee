@@ -1,5 +1,6 @@
 const cloudStore = require('../../utils/cloudStore.js');
 const cloudStorage = require('../../utils/cloudStorage.js');
+const { formatDate } = require('../../utils/date.js');
 
 Page({
   data: {
@@ -15,6 +16,7 @@ Page({
   },
 
   onLoad() {
+    this._freshLoad = true;
     const today = new Date();
     const year = today.getFullYear();
     const month = today.getMonth() + 1;
@@ -28,6 +30,14 @@ Page({
   onShow() {
     const tabBar = this.getTabBar && this.getTabBar();
     if (tabBar && tabBar.setData) tabBar.setData({ selected: 0 });
+    try {
+      const app = getApp();
+      if (app && app.globalData._pendingSyncError) {
+        app.globalData._pendingSyncError = false;
+        wx.showToast({ title: '数据已保存在本地，云端同步失败', icon: 'none' });
+      }
+    } catch (e) {}
+    if (this._freshLoad) { this._freshLoad = false; return; }
     const today = new Date();
     const y = this.data.currentYear || today.getFullYear();
     const m = this.data.currentMonth || today.getMonth() + 1;
@@ -66,23 +76,22 @@ Page({
       this.buildCalendar(y, m, {});
       this.selectDate(this.formatDate(new Date()));
     }
-    cloudStore.getJson('coffeeLogs').then((cloudRaw) => {
+    cloudStore.getJsonCached('coffeeLogs').then((cloudRaw) => {
       if (reqId !== this._loadReqId) return;
       if (cloudRaw && typeof cloudRaw === 'object') {
-        wx.setStorageSync('coffeeLogs', cloudRaw);
-        const cloudLogs = this.rawToLogs(cloudRaw);
-        this.setData({ logs: cloudLogs });
-        this.buildCalendar(this.data.currentYear, this.data.currentMonth, cloudLogs);
+        const localNow = cloudStore.getJsonLocal('coffeeLogs') || {};
+        const merged = cloudStore.mergeCoffeeLogs(cloudRaw, localNow);
+        wx.setStorageSync('coffeeLogs', merged);
+        const mergedLogs = this.rawToLogs(merged);
+        this.setData({ logs: mergedLogs });
+        this.buildCalendar(this.data.currentYear, this.data.currentMonth, mergedLogs);
         if (this.data.selectedDate) this.selectDate(this.data.selectedDate);
       }
-    }).catch(() => {});
+    }).catch((e) => { console.warn('[history] cloud sync fail', e); });
   },
 
   formatDate(date) {
-    const y = date.getFullYear();
-    const m = `${date.getMonth() + 1}`.padStart(2, '0');
-    const d = `${date.getDate()}`.padStart(2, '0');
-    return `${y}-${m}-${d}`;
+    return formatDate(date);
   },
 
   buildCalendar(year, month, logsOverride) {
@@ -281,7 +290,7 @@ Page({
         if (p && p.cutoutUrl && String(p.cutoutUrl).startsWith('cloud://')) fileIDs.push(p.cutoutUrl);
       });
     }
-    if (fileIDs.length) cloudStorage.deleteCloudFiles(fileIDs).catch(() => {});
+    if (fileIDs.length) cloudStorage.deleteCloudFiles(fileIDs).catch((e) => { console.warn('[history]', e); });
 
     list.splice(index, 1);
     if (list.length === 0) {
@@ -290,10 +299,9 @@ Page({
       raw[date] = list;
     }
     wx.setStorageSync('coffeeLogs', raw);
-    cloudStore.setJson('coffeeLogs', raw).catch(() => {});
+    cloudStore.setJson('coffeeLogs', raw).catch((e) => { console.warn('[history]', e); });
 
-    // 更新内存中的 logs
-    const logs = this.data.logs || {};
+    const logs = { ...(this.data.logs || {}) };
     if (list.length === 0) {
       delete logs[date];
     } else {

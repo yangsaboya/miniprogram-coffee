@@ -10,7 +10,7 @@ function uploadImage(tempFilePath) {
   return cloudStore.ensureOpenId().then((openid) => {
     // 如果暂时拿不到 openid，不再阻塞上传，使用通用前缀即可
     const uid = openid || 'anonymous';
-    const ext = (tempFilePath.match(/\.(jpeg|jpg|png|gif|webp)$/i) || [])[1] || 'jpg';
+    const ext = (tempFilePath.match(/\.(jpeg|jpg|png|gif|webp|bmp|tiff|svg)(?:\?|$)/i) || [])[1] || 'jpg';
     const cloudPath = `${CLOUD_PREFIX}/${uid}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
     return wx.cloud.uploadFile({
       cloudPath,

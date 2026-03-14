@@ -5,9 +5,7 @@
     "pages/map/index",
     "pages/shelf/index",
     "pages/story/index",
-    "pages/record/index",
-    "pages/index/index",
-    "pages/logs/logs"
+    "pages/record/index"
   ],
   "window": {
     "navigationBarTextStyle": "white",

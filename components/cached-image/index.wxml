@@ -1,1 +1,1 @@
-<image class="cached-image custom-class" src="{{displaySrc}}" mode="{{mode}}" lazy-load="{{true}}" />
+<image class="cached-image custom-class" src="{{displaySrc}}" mode="{{mode}}" lazy-load="{{true}}" binderror="onImgError" />

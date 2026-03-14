@@ -29,6 +29,19 @@ Component({
   },
 
   methods: {
+    onImgError() {
+      const url = this.data.url;
+      if (!url) return;
+      const local = imageCache.getSync(url);
+      if (local && local !== this.data.displaySrc) {
+        this.setData({ displaySrc: local });
+        return;
+      }
+      if (url !== this.data.displaySrc) {
+        this.setData({ displaySrc: url });
+      }
+    },
+
     resolve(url) {
       if (!url) {
         if (this.data.displaySrc) this.setData({ displaySrc: '' });

@@ -8,7 +8,7 @@
   </view>
 
   <view class="shelf-wrap" wx:if="{{rows && rows.length}}">
-    <view class="shelf-row" wx:for="{{rows}}" wx:key="index">
+    <view class="shelf-row" wx:for="{{rows}}" wx:key="rowKey">
       <view class="shelf-board"></view>
       <view class="shelf-slots">
         <view

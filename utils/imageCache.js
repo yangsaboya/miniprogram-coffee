@@ -19,10 +19,13 @@ function getCacheDir() {
 }
 
 function safeKey(fileID) {
-  let h = 0;
+  let h1 = 0, h2 = 5381;
   const s = String(fileID);
-  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
-  return (h >>> 0).toString(36);
+  for (let i = 0; i < s.length; i++) {
+    h1 = ((h1 << 5) - h1 + s.charCodeAt(i)) | 0;
+    h2 = ((h2 << 5) + h2 + s.charCodeAt(i)) | 0;
+  }
+  return (h1 >>> 0).toString(36) + '_' + (h2 >>> 0).toString(36);
 }
 
 function loadPersisted() {
@@ -41,7 +44,18 @@ function getState() {
 function savePersisted(map, list) {
   try {
     wx.setStorageSync(CACHE_STORAGE_KEY, { map, list });
-  } catch (e) {}
+  } catch (e) {
+    console.warn('[imageCache] persist failed, evicting half', e);
+    const fs = getFs();
+    const half = Math.floor(list.length / 2);
+    for (let i = 0; i < half; i++) {
+      const oldId = list.shift();
+      const oldPath = map[oldId];
+      if (oldPath && fs) { try { fs.unlinkSync(oldPath); } catch (e2) {} }
+      delete map[oldId];
+    }
+    try { wx.setStorageSync(CACHE_STORAGE_KEY, { map, list }); } catch (e2) {}
+  }
 }
 
 function saveState() {
@@ -70,7 +84,9 @@ function isCloudFileId(url) {
 function isLocalPath(path) {
   if (!path || typeof path !== 'string') return false;
   const ud = wx.env && wx.env.USER_DATA_PATH;
-  return (ud && path.indexOf(ud) === 0) || path.indexOf('/') === 0;
+  if (ud && path.indexOf(ud) === 0) return true;
+  if (path.indexOf('wxfile://') === 0) return true;
+  return false;
 }
 
 /**
@@ -139,21 +155,21 @@ function get(fileID) {
       const tempPath = res.tempFilePath;
       if (!tempPath) return fileID;
       fs.copyFileSync(tempPath, destPath);
-      list = list.filter((id) => id !== fileID);
-      list.push(fileID);
-      while (list.length > MAX_ENTRIES) {
-        const oldId = list.shift();
-        const oldPath = map[oldId];
+      const cur = getState();
+      const curMap = cur.map;
+      let curList = cur.list.filter((id) => id !== fileID);
+      curList.push(fileID);
+      while (curList.length > MAX_ENTRIES) {
+        const oldId = curList.shift();
+        const oldPath = curMap[oldId];
         if (oldPath) {
-          try {
-            fs.unlinkSync(oldPath);
-          } catch (e2) {}
-          delete map[oldId];
+          try { fs.unlinkSync(oldPath); } catch (e2) {}
+          delete curMap[oldId];
         }
       }
-      map[fileID] = destPath;
-      s.map = map;
-      s.list = list;
+      curMap[fileID] = destPath;
+      cur.map = curMap;
+      cur.list = curList;
       saveState();
       return destPath;
     })

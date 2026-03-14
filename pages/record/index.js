@@ -1,5 +1,6 @@
 const cloudStore = require('../../utils/cloudStore.js');
 const cloudStorage = require('../../utils/cloudStorage.js');
+const { formatDate } = require('../../utils/date.js');
 const MAX_SHOP_LEN = 40;
 const MAX_NOTE_LEN = 300;
 const MAX_REMARK_LEN = 30;
@@ -46,13 +47,12 @@ Page({
   },
 
   formatDate(date) {
-    const y = date.getFullYear();
-    const m = `${date.getMonth() + 1}`.padStart(2, '0');
-    const d = `${date.getDate()}`.padStart(2, '0');
-    return `${y}-${m}-${d}`;
+    return formatDate(date);
   },
 
   loadLog(date, editIndex) {
+    this._loadLogReqId = (this._loadLogReqId || 0) + 1;
+    const reqId = this._loadLogReqId;
     try {
       const allLogs = cloudStore.getJsonLocal('coffeeLogs') || {};
       const value = allLogs[date];
@@ -99,20 +99,25 @@ Page({
         todayCount: 0
       });
     }
-    cloudStore.getJson('coffeeLogs').then((cloudRaw) => {
+    cloudStore.getJsonCached('coffeeLogs').then((cloudRaw) => {
+      if (reqId !== this._loadLogReqId) return;
       if (cloudRaw && typeof cloudRaw === 'object') {
-        wx.setStorageSync('coffeeLogs', cloudRaw);
+        const localNow = cloudStore.getJsonLocal('coffeeLogs') || {};
+        const merged = cloudStore.mergeCoffeeLogs(cloudRaw, localNow);
+        wx.setStorageSync('coffeeLogs', merged);
       }
-    }).catch(() => {});
+    }).catch((e) => { console.warn('[record] cloud sync fail', e); });
   },
 
   onSourceTap(e) {
     const value = e.currentTarget.dataset.value;
     if (!value) return;
-    this.setData({
+    const update = {
       'log.source': value,
       'log.shop': value === '消费' ? this.data.log.shop : ''
-    });
+    };
+    if (value !== '消费') update['log.location'] = null;
+    this.setData(update);
   },
 
   onShopInput(e) {
@@ -191,26 +196,28 @@ Page({
 
   chooseFromAlbum() {
     const that = this;
-    wx.chooseImage({
+    wx.chooseMedia({
       count: 6,
+      mediaType: ['image'],
       sizeType: ['compressed'],
       sourceType: ['album'],
       success(res) {
-        that.appendPhotos(res.tempFilePaths);
+        const paths = (res.tempFiles || []).map((f) => f.tempFilePath);
+        that.appendPhotos(paths);
       }
     });
   },
 
   takePhotoAndSave() {
     const that = this;
-    wx.chooseImage({
+    wx.chooseMedia({
       count: 3,
+      mediaType: ['image'],
       sizeType: ['compressed'],
       sourceType: ['camera'],
       success(res) {
-        const paths = res.tempFilePaths || [];
+        const paths = (res.tempFiles || []).map((f) => f.tempFilePath);
         that.appendPhotos(paths);
-        // 不再调用保存相册：拍照时系统/微信已自动写入相册，再调会重复一张
       }
     });
   },
@@ -286,6 +293,7 @@ Page({
         })
         : []
     };
+    if (!safeLog.location) delete safeLog.location;
     let allLogs = cloudStore.getJsonLocal('coffeeLogs') || {};
     const date = this.data.today;
     const value = allLogs[date];
@@ -341,7 +349,10 @@ Page({
 
     cloudStore.setJson('coffeeLogs', allLogs).catch((e) => {
       console.error('cloud setJson fail', e);
-      wx.showToast({ title: '已保存在本地，云端同步失败', icon: 'none' });
+      try {
+        const app = getApp();
+        if (app) app.globalData._pendingSyncError = true;
+      } catch (e2) {}
     });
   },
 
