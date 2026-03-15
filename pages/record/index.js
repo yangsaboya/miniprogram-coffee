@@ -34,8 +34,7 @@ Page({
   onLoad(options) {
     const passedDate = options && options.date;
     const editIndex = options.editIndex !== undefined ? parseInt(options.editIndex, 10) : -1;
-    const baseDate = passedDate ? new Date(passedDate) : new Date();
-    const today = this.formatDate(baseDate);
+    const today = passedDate || this.formatDate(new Date());
     this.setData({ editIndex: editIndex >= 0 ? editIndex : -1 });
     this.loadLog(today, editIndex);
 

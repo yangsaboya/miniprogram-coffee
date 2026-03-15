@@ -1,6 +1,6 @@
 const cloudStore = require('../../utils/cloudStore.js');
 
-const { formatDate } = require('../../utils/date.js');
+const { formatDate, parseLocalDate } = require('../../utils/date.js');
 
 function formatWeekLabel(baseDate) {
   const d = new Date(baseDate);
@@ -217,7 +217,7 @@ Page({
     const todayStart = startOfDay(now);
     if (mode === 'daily') {
       return entries.filter((e) => {
-        const dt = new Date(e.date || e._date || now);
+        const dt = e.date || e._date ? parseLocalDate(e.date || e._date) : now;
         return startOfDay(dt) === todayStart;
       });
     }
@@ -229,7 +229,7 @@ Page({
     const ws = startOfDay(weekStart);
     const we = ws + 7 * 24 * 60 * 60 * 1000;
     return entries.filter((e) => {
-      const dt = new Date(e.date || e._date || now);
+      const dt = e.date || e._date ? parseLocalDate(e.date || e._date) : now;
       const ts = startOfDay(dt);
       return ts >= ws && ts < we;
     });
@@ -237,8 +237,8 @@ Page({
 
   buildStory(entries, mode, now) {
     const sorted = entries.slice().sort((a, b) => {
-      const ta = new Date(a.date || a._date || now).getTime();
-      const tb = new Date(b.date || b._date || now).getTime();
+      const ta = (a.date || a._date ? parseLocalDate(a.date || a._date) : now).getTime();
+      const tb = (b.date || b._date ? parseLocalDate(b.date || b._date) : now).getTime();
       return ta - tb;
     });
     const shopSet = {};
